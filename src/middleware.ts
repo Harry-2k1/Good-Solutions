@@ -8,17 +8,49 @@ import {
   isApiRoute,
   withCorsJson,
 } from '@/lib/cors';
+import {
+  checkRateLimit,
+  getClientIp,
+  getRateLimitConfig,
+  rateLimitHeaders,
+} from '@/lib/rate-limit';
 
 const { auth } = NextAuth(authConfig);
 
 const publicRoutes = ['/login'];
 const authRoutes = ['/login'];
 
+function rateLimitedResponse(request: NextRequest, resetAt: number) {
+  const retryAfter = Math.max(1, Math.ceil((resetAt - Date.now()) / 1000));
+  const response = withCorsJson(
+    request,
+    { error: 'Too many requests. Please try again later.' },
+    429
+  );
+  response.headers.set('Retry-After', String(retryAfter));
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (isCorsEnabled && isApiRoute(pathname) && request.method === 'OPTIONS') {
     return corsPreflightResponse(request);
+  }
+
+  if (isApiRoute(pathname)) {
+    const isAuthApi = pathname.startsWith('/api/auth');
+    const ip = getClientIp(request);
+    const config = getRateLimitConfig(isAuthApi);
+    const result = checkRateLimit(`${ip}:${isAuthApi ? 'auth' : 'api'}`, config);
+
+    if (!result.success) {
+      const blocked = rateLimitedResponse(request, result.resetAt);
+      Object.entries(rateLimitHeaders(result)).forEach(([k, v]) => {
+        blocked.headers.set(k, v);
+      });
+      return blocked;
+    }
   }
 
   const session = await auth();

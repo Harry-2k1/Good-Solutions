@@ -84,6 +84,10 @@ Open [http://localhost:3000](http://localhost:3000) and sign in with your super 
 | `NEXTAUTH_URL` | No | App URL (default: localhost:3000) |
 | `CORS_ENABLED` | No | Enable CORS in development (default: `true`) |
 | `CORS_ORIGIN` | No | Comma-separated allowed origins for CORS |
+| `RATE_LIMIT_ENABLED` | No | Enable API rate limiting (default: `true`) |
+| `RATE_LIMIT_MAX` | No | Max API requests per IP per window (default: `100`) |
+| `RATE_LIMIT_WINDOW_MS` | No | Rate limit window in ms (default: `60000`) |
+| `AUTH_RATE_LIMIT_MAX` | No | Max login/auth requests per IP per window (default: `10`) |
 
 Generate secure secrets:
 ```bash
@@ -142,6 +146,7 @@ src/
 4. Credentials are masked in the UI until explicitly revealed
 5. Use HTTPS in production
 6. Rotate encryption keys with a proper migration strategy if compromised
+7. API rate limiting is enabled by default (100 req/min general, 10 req/min for auth). Set `RATE_LIMIT_ENABLED=false` only if needed
 
 ## Production Deployment
 

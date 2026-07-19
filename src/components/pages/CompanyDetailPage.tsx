@@ -24,6 +24,7 @@ import CredentialsPanel from '@/components/companies/CredentialsPanel';
 import BankOperationsPanel from '@/components/companies/BankOperationsPanel';
 import CompanySectionsSummary from '@/components/companies/CompanySectionsSummary';
 import CompanyLoginDetailsPanel from '@/components/companies/CompanyLoginDetailsPanel';
+import EditCompanyPanel from '@/components/companies/EditCompanyPanel';
 
 const companyTypeLabels: Record<CompanyType, string> = {
   [CompanyType.PROPRIETORSHIP]: 'Proprietorship',
@@ -122,6 +123,12 @@ export default function CompanyDetailPage() {
 
       {tab === 0 && (
         <Grid container spacing={3}>
+          <Grid size={{ xs: 12 }}>
+            <EditCompanyPanel
+              company={company}
+              onUpdated={(updated) => setCompany(updated as CompanyDetail)}
+            />
+          </Grid>
           <Grid size={{ xs: 12 }}>
             <CompanySectionsSummary companyId={companyId} onNavigateTab={setTab} />
           </Grid>

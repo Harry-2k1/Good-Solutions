@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db';
 import { requireAuth, apiError, apiSuccess, AuthError } from '@/lib/api-utils';
 import { Company } from '@/models/Company';
 import { createCompanySchema } from '@/lib/validation';
+import { updateCompanySchema } from '@/lib/validation-company';
 import { decryptCredentials, encryptCredentials, maskCredentials, maskBankOperation, decryptBankOperation } from '@/lib/credentials';
 
 function sanitizeCompany(company: object, revealSecrets = false) {
@@ -72,18 +73,24 @@ export async function PATCH(
     const sessionUser = await requireAuth();
     const { id } = await params;
     const body = await request.json();
+    const parsed = updateCompanySchema.safeParse(body);
+
+    if (!parsed.success) {
+      return apiError(parsed.error.issues[0].message, 400, request);
+    }
 
     const company = await getCompany(id, sessionUser.organizationId);
-    if (!company) return apiError('Company not found', 404);
+    if (!company) return apiError('Company not found', 404, request);
 
-    if (body.name) company.name = body.name;
-    if (body.description !== undefined) company.description = body.description;
-    if (body.companyType) company.companyType = body.companyType;
-    if (body.contacts) company.contacts = body.contacts;
-    if (body.links) company.links = body.links;
+    const updates = parsed.data;
+    if (updates.name) company.name = updates.name;
+    if (updates.description !== undefined) company.description = updates.description;
+    if (updates.companyType) company.companyType = updates.companyType;
+    if (updates.contacts) company.contacts = updates.contacts;
+    if (updates.links) company.links = updates.links;
 
     await company.save();
-    return apiSuccess(sanitizeCompany(company.toObject()));
+    return apiSuccess(sanitizeCompany(company.toObject()), 200, request);
   } catch (error) {
     if (error instanceof AuthError) return apiError(error.message, error.status);
     return apiError('Internal server error', 500);
