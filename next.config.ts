@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ['mongoose', 'bcryptjs'],
+  allowedDevOrigins: ["10.10.19.179"],
 };
 
 export default nextConfig;
