@@ -11,12 +11,14 @@ import {
   InputAdornment,
   IconButton,
 } from '@mui/material';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import BrandLogo from '@/components/common/BrandLogo';
+import ThemeSwitcher from '@/components/common/ThemeSwitcher';
+import { alpha } from '@mui/material/styles';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -55,35 +57,60 @@ export default function LoginPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: 'background.default',
         p: 2,
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      <Card sx={{ maxWidth: 440, width: '100%' }}>
-        <CardContent sx={{ p: 4 }}>
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Box
-              sx={{
-                width: 56,
-                height: 56,
-                borderRadius: 2,
-                bgcolor: 'primary.main',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mx: 'auto',
-                mb: 2,
-              }}
-            >
-              <LockOutlinedIcon sx={{ color: 'white', fontSize: 28 }} />
-            </Box>
-            <Typography variant="h5" color="primary" sx={{ fontWeight: 700 }}>
-              GOOD SOLUTIONS
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              Accountant Admin Portal
-            </Typography>
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -120,
+          right: -120,
+          width: 360,
+          height: 360,
+          borderRadius: '50%',
+          bgcolor: (t) => alpha(t.palette.primary.main, 0.12),
+          filter: 'blur(40px)',
+        }}
+      />
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: -80,
+          left: -80,
+          width: 280,
+          height: 280,
+          borderRadius: '50%',
+          bgcolor: (t) => alpha(t.palette.secondary.main, 0.1),
+          filter: 'blur(40px)',
+        }}
+      />
+
+      <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+        <ThemeSwitcher />
+      </Box>
+
+      <Card
+        sx={{
+          maxWidth: 440,
+          width: '100%',
+          position: 'relative',
+          zIndex: 1,
+          overflow: 'visible',
+        }}
+      >
+        <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+          <Box sx={{ mb: 4 }}>
+            <BrandLogo variant="full" size={48} />
           </Box>
+
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5, textAlign: 'center' }}>
+            Welcome back
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
+            Sign in to manage your clients and credentials
+          </Typography>
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -129,6 +156,7 @@ export default function LoginPage() {
               variant="contained"
               size="large"
               disabled={loading}
+              sx={{ py: 1.4 }}
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>

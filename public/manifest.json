@@ -1,0 +1,24 @@
+{
+  "name": "Good Solutions Admin Portal",
+  "short_name": "Good Solutions",
+  "description": "Secure admin portal for accountants managing client tax filing and banking details",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EEF4FB",
+  "theme_color": "#1565C0",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

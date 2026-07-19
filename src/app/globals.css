@@ -10,7 +10,39 @@ body {
   overflow-x: hidden;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 a {
   color: inherit;
   text-decoration: none;
+}
+
+::selection {
+  background: rgba(21, 101, 192, 0.25);
+}
+
+html[data-theme='dark-blue'] ::selection,
+html[data-theme='dark'] ::selection {
+  background: rgba(100, 181, 246, 0.35);
+}
+
+html[data-theme='light-blue'] body {
+  background: linear-gradient(160deg, #eef4fb 0%, #f8fafc 45%, #eef2ff 100%);
+  background-attachment: fixed;
+}
+
+html[data-theme='dark-blue'] body {
+  background: linear-gradient(160deg, #0b1929 0%, #0f2744 50%, #0b1929 100%);
+  background-attachment: fixed;
+}
+
+html[data-theme='dark'] body {
+  background: #121212;
 }

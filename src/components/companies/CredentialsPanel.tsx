@@ -26,6 +26,7 @@ import { PasswordField } from '@/components/common/PageElements';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
 import { hasConfiguredData, formatDisplayDate, MASK_PLACEHOLDER, normalizeSectionData } from '@/lib/credentials-display';
+import { alpha } from '@mui/material/styles';
 
 interface CredentialSection {
   key: string;
@@ -200,11 +201,11 @@ export default function CredentialsPanel({ companyId, apiPath, sections }: Crede
             {!isEditing && isConfigured && (
               <Box
                 sx={{
-                  bgcolor: 'grey.50',
                   borderRadius: 2,
                   p: 2.5,
                   border: '1px solid',
                   borderColor: 'divider',
+                  bgcolor: (t) => (t.palette.mode === 'light' ? 'grey.50' : alpha(t.palette.primary.main, 0.06)),
                 }}
               >
                 <Grid container spacing={2}>

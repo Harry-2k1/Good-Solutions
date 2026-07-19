@@ -124,7 +124,16 @@ export default function CompaniesPage() {
             const openTasks = company.tasks?.filter((t) => t.status !== 'completed').length || 0;
             return (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={company._id}>
-                <Card sx={{ height: '100%' }}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 6,
+                    },
+                  }}
+                >
                   <CardActionArea component={Link} href={`/companies/${company._id}`} sx={{ height: '100%' }}>
                     <CardContent>
                       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1.5 }}>
