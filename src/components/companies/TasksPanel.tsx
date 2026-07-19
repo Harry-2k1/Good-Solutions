@@ -191,7 +191,7 @@ export default function TasksPanel({ companyId }: { companyId: string }) {
                     <TableCell>
                       <Typography sx={{ fontWeight: 500 }}>{task.name}</Typography>
                       {task.description && (
-                        <Typography variant="caption" color="text.secondary" display="block">
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                           {task.description}
                         </Typography>
                       )}

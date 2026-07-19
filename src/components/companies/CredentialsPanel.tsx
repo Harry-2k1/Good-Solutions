@@ -210,7 +210,7 @@ export default function CredentialsPanel({ companyId, apiPath, sections }: Crede
                 <Grid container spacing={2}>
                   {currentSection.fields.map((field) => (
                     <Grid size={{ xs: 12, sm: 6 }} key={field.name}>
-                      <Typography variant="caption" color="text.secondary" display="block">
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                         {field.label}
                       </Typography>
                       <Typography variant="body1" sx={{ fontWeight: 500, wordBreak: 'break-all' }}>

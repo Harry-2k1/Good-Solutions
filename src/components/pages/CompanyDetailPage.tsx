@@ -156,7 +156,7 @@ export default function CompanyDetailPage() {
                 ) : (
                   company.links.map((l, i) => (
                     <Box key={i} sx={{ mb: 2 }}>
-                      <MuiLink href={l.url} target="_blank" rel="noopener" fontWeight={600}>
+                      <MuiLink href={l.url} target="_blank" rel="noopener" sx={{ fontWeight: 600 }}>
                         {l.name} <OpenInNewIcon sx={{ fontSize: 14, verticalAlign: 'middle' }} />
                       </MuiLink>
                       {l.notes && <Typography variant="body2" color="text.secondary">{l.notes}</Typography>}
