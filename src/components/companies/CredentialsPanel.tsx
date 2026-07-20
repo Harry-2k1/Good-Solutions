@@ -18,11 +18,10 @@ import {
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useState, useEffect, useCallback } from 'react';
 import { PasswordField } from '@/components/common/PageElements';
+import { FieldValueRow } from '@/components/common/FieldValueRow';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
 import { hasConfiguredData, formatDisplayDate, MASK_PLACEHOLDER, normalizeSectionData } from '@/lib/credentials-display';
@@ -34,8 +33,9 @@ interface CredentialSection {
   fields: Array<{
     name: string;
     label: string;
-    type?: 'text' | 'password' | 'date';
+    type?: 'text' | 'password' | 'date' | 'link';
     sensitive?: boolean;
+    copyable?: boolean;
   }>;
 }
 
@@ -43,12 +43,19 @@ interface CredentialsPanelProps {
   companyId: string;
   apiPath: string;
   sections: CredentialSection[];
+  canEdit?: boolean;
 }
 
-export default function CredentialsPanel({ companyId, apiPath, sections }: CredentialsPanelProps) {
+export default function CredentialsPanel({
+  companyId,
+  apiPath,
+  sections,
+  canEdit = true,
+}: CredentialsPanelProps) {
   const [tab, setTab] = useState(0);
   const [data, setData] = useState<Record<string, Record<string, string>>>({});
-  const [revealed, setRevealed] = useState(false);
+  const [revealedData, setRevealedData] = useState<Record<string, Record<string, string>>>({});
+  const [revealedFields, setRevealedFields] = useState<Record<string, Set<string>>>({});
   const [editMode, setEditMode] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -64,7 +71,12 @@ export default function CredentialsPanel({ companyId, apiPath, sections }: Crede
       const res = await fetch(`/api/companies/${companyId}/${apiPath}?reveal=${reveal}`);
       if (!res.ok) throw new Error('Failed to load data');
       const json = await res.json();
-      setData(normalizeSectionData(json as Record<string, unknown>));
+      const normalized = normalizeSectionData(json as Record<string, unknown>);
+      if (reveal) {
+        setRevealedData(normalized);
+      } else {
+        setData(normalized);
+      }
     } catch {
       setSnack({ open: true, message: 'Failed to load credentials', severity: 'error' });
     } finally {
@@ -79,6 +91,7 @@ export default function CredentialsPanel({ companyId, apiPath, sections }: Crede
   const currentSection = sections[tab];
   const sectionKey = currentSection.key;
   const sectionData = data[sectionKey] || {};
+  const revealedSectionData = revealedData[sectionKey] || {};
   const isEditing = editMode[sectionKey] ?? false;
   const isConfigured = hasConfiguredData(sectionData);
 
@@ -94,7 +107,10 @@ export default function CredentialsPanel({ companyId, apiPath, sections }: Crede
         const err = await res.json();
         throw new Error(err.error || 'Save failed');
       }
-      await fetchData(revealed);
+      await fetchData(false);
+      if (Object.keys(revealedData).length > 0) {
+        await fetchData(true);
+      }
       setEditMode((prev) => ({ ...prev, [sectionKey]: false }));
       setSnack({ open: true, message: 'Saved successfully', severity: 'success' });
     } catch (e) {
@@ -108,10 +124,24 @@ export default function CredentialsPanel({ companyId, apiPath, sections }: Crede
     }
   };
 
-  const toggleReveal = async () => {
-    const next = !revealed;
-    setRevealed(next);
-    await fetchData(next);
+  const toggleFieldReveal = async (fieldName: string) => {
+    const sectionRevealed = revealedFields[sectionKey] ?? new Set<string>();
+    const isRevealed = sectionRevealed.has(fieldName);
+
+    if (isRevealed) {
+      const next = new Set(sectionRevealed);
+      next.delete(fieldName);
+      setRevealedFields((prev) => ({ ...prev, [sectionKey]: next }));
+      return;
+    }
+
+    if (Object.keys(revealedData).length === 0) {
+      await fetchData(true);
+    }
+
+    const next = new Set(sectionRevealed);
+    next.add(fieldName);
+    setRevealedFields((prev) => ({ ...prev, [sectionKey]: next }));
   };
 
   const updateField = (field: string, value: string) => {
@@ -121,14 +151,29 @@ export default function CredentialsPanel({ companyId, apiPath, sections }: Crede
     }));
   };
 
+  const isFieldRevealed = (fieldName: string) =>
+    (revealedFields[sectionKey] ?? new Set<string>()).has(fieldName);
+
+  const getFieldValue = (field: CredentialSection['fields'][number]) => {
+    const masked = sectionData[field.name];
+    const revealed = revealedSectionData[field.name];
+    const raw = isFieldRevealed(field.name) && revealed !== undefined ? revealed : masked;
+    return raw;
+  };
+
   const renderViewValue = (field: CredentialSection['fields'][number]) => {
-    const value = sectionData[field.name];
-    if (value === undefined || value === null || value === '') return '—';
+    const value = getFieldValue(field);
+    if (value === undefined || value === null || value === '') return undefined;
     if (field.type === 'date') return formatDisplayDate(value);
-    if (field.sensitive || field.type === 'password') {
-      return revealed ? value : MASK_PLACEHOLDER;
+    if ((field.sensitive || field.type === 'password') && !isFieldRevealed(field.name)) {
+      return MASK_PLACEHOLDER;
     }
     return value;
+  };
+
+  const isCopyable = (field: CredentialSection['fields'][number]) => {
+    if (field.type === 'date' || field.type === 'link') return false;
+    return field.copyable !== false;
   };
 
   return (
@@ -171,31 +216,24 @@ export default function CredentialsPanel({ companyId, apiPath, sections }: Crede
                   <Chip label="Not configured" size="small" variant="outlined" />
                 )}
               </Box>
-              <Stack direction="row" spacing={1}>
-                {isConfigured && (
-                  <Button
-                    size="small"
-                    startIcon={revealed ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                    onClick={toggleReveal}
-                  >
-                    {revealed ? 'Hide Secrets' : 'View Secrets'}
-                  </Button>
-                )}
-                {!isEditing ? (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<EditIcon />}
-                    onClick={() => setEditMode((prev) => ({ ...prev, [sectionKey]: true }))}
-                  >
-                    {isConfigured ? 'Edit' : 'Add Details'}
-                  </Button>
-                ) : (
-                  <Button size="small" onClick={() => setEditMode((prev) => ({ ...prev, [sectionKey]: false }))}>
-                    Cancel
-                  </Button>
-                )}
-              </Stack>
+              {canEdit && (
+                <Stack direction="row" spacing={1}>
+                  {!isEditing ? (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<EditIcon />}
+                      onClick={() => setEditMode((prev) => ({ ...prev, [sectionKey]: true }))}
+                    >
+                      {isConfigured ? 'Edit' : 'Add Details'}
+                    </Button>
+                  ) : (
+                    <Button size="small" onClick={() => setEditMode((prev) => ({ ...prev, [sectionKey]: false }))}>
+                      Cancel
+                    </Button>
+                  )}
+                </Stack>
+              )}
             </Box>
 
             {!isEditing && isConfigured && (
@@ -211,12 +249,20 @@ export default function CredentialsPanel({ companyId, apiPath, sections }: Crede
                 <Grid container spacing={2}>
                   {currentSection.fields.map((field) => (
                     <Grid size={{ xs: 12, sm: 6 }} key={field.name}>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                        {field.label}
-                      </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 500, wordBreak: 'break-all' }}>
-                        {renderViewValue(field)}
-                      </Typography>
+                      <FieldValueRow
+                        label={field.label}
+                        value={getFieldValue(field)}
+                        displayValue={renderViewValue(field)}
+                        sensitive={field.sensitive || field.type === 'password'}
+                        isLink={field.type === 'link'}
+                        revealed={isFieldRevealed(field.name)}
+                        onToggleReveal={
+                          field.sensitive || field.type === 'password'
+                            ? () => toggleFieldReveal(field.name)
+                            : undefined
+                        }
+                        copyable={isCopyable(field)}
+                      />
                     </Grid>
                   ))}
                 </Grid>
@@ -225,11 +271,12 @@ export default function CredentialsPanel({ companyId, apiPath, sections }: Crede
 
             {!isEditing && !isConfigured && (
               <Alert severity="info">
-                No {currentSection.title.toLowerCase()} details added yet. Click &quot;Add Details&quot; to enter credentials.
+                No {currentSection.title.toLowerCase()} details added yet.
+                {canEdit ? ' Click "Add Details" to enter credentials.' : ''}
               </Alert>
             )}
 
-            {isEditing && (
+            {isEditing && canEdit && (
               <>
                 <Divider sx={{ mb: 2 }} />
                 <Grid container spacing={2}>
@@ -249,15 +296,16 @@ export default function CredentialsPanel({ companyId, apiPath, sections }: Crede
                           label={field.label}
                           value={sectionData[field.name] || ''}
                           onChange={(v) => updateField(field.name, v)}
-                          revealed={revealed}
-                          showToggle={revealed}
+                          showToggle
                         />
                       ) : (
                         <TextField
                           fullWidth
                           label={field.label}
+                          type={field.type === 'link' ? 'url' : 'text'}
                           value={sectionData[field.name] || ''}
                           onChange={(e) => updateField(field.name, e.target.value)}
+                          placeholder={field.type === 'link' ? 'https://' : undefined}
                         />
                       )}
                     </Grid>

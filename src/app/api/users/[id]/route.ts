@@ -1,7 +1,8 @@
 import { connectDB } from '@/lib/db';
 import { requireAuth, apiError, apiSuccess, AuthError } from '@/lib/api-utils';
 import { User } from '@/models/User';
-import { canViewUsers } from '@/lib/permissions';
+import { canViewUsers, canManageModuleAccess } from '@/lib/permissions';
+import { updateUserSchema } from '@/lib/validation';
 import { UserRole } from '@/types';
 
 export async function GET(
@@ -46,6 +47,11 @@ export async function PATCH(
     }
 
     const body = await request.json();
+    const parsed = updateUserSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiError(parsed.error.issues[0].message, 400);
+    }
+
     await connectDB();
 
     const user = await User.findOne({
@@ -59,8 +65,18 @@ export async function PATCH(
       return apiError('Forbidden', 403);
     }
 
-    if (body.name) user.name = body.name;
-    if (typeof body.isActive === 'boolean') user.isActive = body.isActive;
+    if (parsed.data.name) user.name = parsed.data.name;
+    if (typeof parsed.data.isActive === 'boolean') user.isActive = parsed.data.isActive;
+
+    if (parsed.data.moduleAccess !== undefined) {
+      if (!canManageModuleAccess(sessionUser.role)) {
+        return apiError('Forbidden', 403);
+      }
+      if (user.role !== UserRole.USER) {
+        return apiError('Module access applies to accountants only', 400);
+      }
+      user.moduleAccess = parsed.data.moduleAccess;
+    }
 
     await user.save();
     const { password: _, ...result } = user.toObject() as unknown as Record<string, unknown>;

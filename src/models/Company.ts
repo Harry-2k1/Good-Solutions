@@ -39,6 +39,7 @@ const TaskSchema = new Schema(
 
 const CredentialFieldsSchema = new Schema(
   {
+    link: { type: String },
     username: { type: String },
     password: { type: String },
     panId: { type: String },
@@ -54,6 +55,7 @@ const CredentialFieldsSchema = new Schema(
 const BankOperationSchema = new Schema(
   {
     bankName: { type: String, required: true },
+    link: { type: String },
     userId: { type: String },
     loginPassword: { type: String },
     transactionPassword: { type: String },

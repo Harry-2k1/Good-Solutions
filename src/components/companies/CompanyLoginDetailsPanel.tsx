@@ -36,7 +36,12 @@ interface LoginDetail {
   description?: string;
 }
 
-export default function CompanyLoginDetailsPanel({ companyId }: { companyId: string }) {
+interface CompanyLoginDetailsPanelProps {
+  companyId: string;
+  canEdit?: boolean;
+}
+
+export default function CompanyLoginDetailsPanel({ companyId, canEdit = true }: CompanyLoginDetailsPanelProps) {
   const [entries, setEntries] = useState<LoginDetail[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<LoginDetail | null>(null);
@@ -93,9 +98,11 @@ export default function CompanyLoginDetailsPanel({ companyId }: { companyId: str
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
           <Typography variant="h6">Company Login Details</Typography>
-          <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={openCreate}>
-            Add Portal
-          </Button>
+          {canEdit && (
+            <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={openCreate}>
+              Add Portal
+            </Button>
+          )}
         </Box>
         <TableContainer>
           <Table size="small">
@@ -127,8 +134,12 @@ export default function CompanyLoginDetailsPanel({ companyId }: { companyId: str
                     </TableCell>
                     <TableCell>{e.description || '—'}</TableCell>
                     <TableCell align="right">
-                      <IconButton size="small" onClick={() => openEdit(e)}><EditIcon fontSize="small" /></IconButton>
-                      <IconButton size="small" color="error" onClick={() => handleDelete(e._id)}><DeleteIcon fontSize="small" /></IconButton>
+                      {canEdit && (
+                        <>
+                          <IconButton size="small" onClick={() => openEdit(e)}><EditIcon fontSize="small" /></IconButton>
+                          <IconButton size="small" color="error" onClick={() => handleDelete(e._id)}><DeleteIcon fontSize="small" /></IconButton>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

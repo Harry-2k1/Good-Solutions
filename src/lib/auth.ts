@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { authConfig } from '@/lib/auth.config';
 import { connectDB } from '@/lib/db';
 import { User } from '@/models/User';
-import { UserRole } from '@/types';
+import { UserRole, AccountantModule } from '@/types';
 import { loginSchema } from '@/lib/validation';
 
 declare module 'next-auth' {
@@ -15,12 +15,14 @@ declare module 'next-auth' {
       name: string;
       role: UserRole;
       organizationId: string;
+      moduleAccess: AccountantModule[];
     };
   }
 
   interface User {
     role: UserRole;
     organizationId: string;
+    moduleAccess: AccountantModule[];
   }
 }
 
@@ -29,6 +31,7 @@ declare module '@auth/core/jwt' {
     id: string;
     role: UserRole;
     organizationId: string;
+    moduleAccess: AccountantModule[];
   }
 }
 
@@ -59,12 +62,17 @@ export const {
         const isValid = await bcrypt.compare(parsed.data.password, user.password);
         if (!isValid) return null;
 
+        const moduleAccess = user.moduleAccess?.length
+          ? [...user.moduleAccess]
+          : [];
+
         return {
           id: user._id.toString(),
           email: user.email,
           name: user.name,
           role: user.role,
           organizationId: user.organizationId.toString(),
+          moduleAccess,
         };
       },
     }),

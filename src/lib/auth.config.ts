@@ -1,5 +1,5 @@
 import type { NextAuthConfig } from 'next-auth';
-import { UserRole } from '@/types';
+import { UserRole, AccountantModule } from '@/types';
 
 /**
  * Edge-compatible NextAuth config.
@@ -22,6 +22,9 @@ export const authConfig = {
         token.id = user.id!;
         token.role = user.role as UserRole;
         token.organizationId = user.organizationId as string;
+        token.moduleAccess = user.moduleAccess?.length
+          ? [...user.moduleAccess]
+          : [];
       }
       return token;
     },
@@ -30,6 +33,9 @@ export const authConfig = {
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
         session.user.organizationId = token.organizationId as string;
+        session.user.moduleAccess = Array.isArray(token.moduleAccess)
+          ? [...token.moduleAccess]
+          : [];
       }
       return session;
     },

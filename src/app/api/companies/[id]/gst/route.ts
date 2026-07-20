@@ -1,9 +1,11 @@
 import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db';
-import { requireAuth, apiError, apiSuccess, AuthError } from '@/lib/api-utils';
+import { requireAuth, apiError, apiSuccess, handleApiError } from '@/lib/api-utils';
 import { Company } from '@/models/Company';
 import { encryptCredentials, decryptCredentials, maskCredentials, mergeCredentialUpdate } from '@/lib/credentials';
 import { toPlainObject } from '@/lib/mongoose-utils';
+import { requireModuleAccess } from '@/lib/module-access';
+import { AccountantModule } from '@/types';
 
 const CREDENTIAL_SENSITIVE = ['password', 'panId', 'tanId', 'userId'];
 
@@ -37,6 +39,7 @@ export async function GET(
 ) {
   try {
     const sessionUser = await requireAuth();
+    requireModuleAccess(sessionUser, AccountantModule.GST);
     const { id } = await params;
     const reveal = request.nextUrl.searchParams.get('reveal') === 'true';
 
@@ -45,8 +48,7 @@ export async function GET(
 
     return apiSuccess(sanitizeGst(company.gst, reveal));
   } catch (error) {
-    if (error instanceof AuthError) return apiError(error.message, error.status);
-    return apiError('Internal server error', 500);
+    return handleApiError(error);
   }
 }
 
@@ -56,6 +58,7 @@ export async function PATCH(
 ) {
   try {
     const sessionUser = await requireAuth();
+    requireModuleAccess(sessionUser, AccountantModule.GST);
     const { id } = await params;
     const body = await request.json();
     const { section, data } = body;
@@ -90,7 +93,6 @@ export async function PATCH(
       )
     );
   } catch (error) {
-    if (error instanceof AuthError) return apiError(error.message, error.status);
-    return apiError('Internal server error', 500);
+    return handleApiError(error);
   }
 }

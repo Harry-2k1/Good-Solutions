@@ -62,6 +62,8 @@ export async function POST(request: NextRequest) {
       role: parsed.data.role,
       organizationId: sessionUser.organizationId,
       createdBy: sessionUser.id,
+      moduleAccess:
+        parsed.data.role === UserRole.USER ? (parsed.data.moduleAccess ?? []) : [],
     });
 
     const { password: _, ...result } = user.toObject() as unknown as Record<string, unknown>;

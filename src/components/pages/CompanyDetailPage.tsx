@@ -16,9 +16,10 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { LoadingState, ErrorAlert } from '@/components/common/PageElements';
-import { CompanyType } from '@/types';
+import { AccountantModule, CompanyType } from '@/types';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import TasksPanel from '@/components/companies/TasksPanel';
 import CredentialsPanel from '@/components/companies/CredentialsPanel';
 import BankOperationsPanel from '@/components/companies/BankOperationsPanel';
@@ -36,27 +37,69 @@ const companyTypeLabels: Record<CompanyType, string> = {
   [CompanyType.OTHER]: 'Other',
 };
 
+const linkField = { name: 'link', label: 'Portal Link', type: 'link' as const };
+
 const gstSections = [
   {
     key: 'loginDetails',
     title: 'GST Login',
     fields: [
+      linkField,
       { name: 'username', label: 'Username' },
       { name: 'password', label: 'Password', sensitive: true },
-      { name: 'updatedAt', label: 'Updated At', type: 'date' as const },
-      { name: 'expiredAt', label: 'Expired At', type: 'date' as const },
+      { name: 'updatedAt', label: 'Updated At', type: 'date' as const, copyable: false },
+      { name: 'expiredAt', label: 'Expired At', type: 'date' as const, copyable: false },
     ],
   },
-  { key: 'ewayBill', title: 'E-Way Bill', fields: [{ name: 'username', label: 'Username' }, { name: 'password', label: 'Password', sensitive: true }] },
-  { key: 'eInvoiceBill', title: 'E-Invoice Bill', fields: [{ name: 'username', label: 'Username' }, { name: 'password', label: 'Password', sensitive: true }] },
-  { key: 'tallyEInvoice', title: 'Tally / E-Invoice', fields: [{ name: 'username', label: 'Username' }, { name: 'password', label: 'Password', sensitive: true }] },
+  {
+    key: 'ewayBill',
+    title: 'E-Way Bill',
+    fields: [linkField, { name: 'username', label: 'Username' }, { name: 'password', label: 'Password', sensitive: true }],
+  },
+  {
+    key: 'eInvoiceBill',
+    title: 'E-Invoice Bill',
+    fields: [linkField, { name: 'username', label: 'Username' }, { name: 'password', label: 'Password', sensitive: true }],
+  },
+  {
+    key: 'tallyEInvoice',
+    title: 'Tally / E-Invoice',
+    fields: [linkField, { name: 'username', label: 'Username' }, { name: 'password', label: 'Password', sensitive: true }],
+  },
 ];
 
 const incomeTaxSections = [
-  { key: 'itFiling', title: 'IT Filing', fields: [{ name: 'panId', label: 'PAN ID', sensitive: true }, { name: 'password', label: 'Password', sensitive: true }] },
-  { key: 'tdsPayment', title: 'TDS Payment (E-Pay Tax)', fields: [{ name: 'tanId', label: 'TAN ID', sensitive: true }, { name: 'password', label: 'Password', sensitive: true }] },
-  { key: 'tdsTracers', title: 'TDS Tracers', fields: [{ name: 'userId', label: 'User ID', sensitive: true }, { name: 'password', label: 'Password', sensitive: true }] },
-  { key: 'bulkDownload', title: '26 Bulk Download', fields: [{ name: 'userId', label: 'User ID', sensitive: true }, { name: 'password', label: 'Password', sensitive: true }] },
+  {
+    key: 'itFiling',
+    title: 'IT Filing',
+    fields: [linkField, { name: 'panId', label: 'PAN ID', sensitive: true }, { name: 'password', label: 'Password', sensitive: true }],
+  },
+  {
+    key: 'tdsPayment',
+    title: 'TDS Payment (E-Pay Tax)',
+    fields: [linkField, { name: 'tanId', label: 'TAN ID', sensitive: true }, { name: 'password', label: 'Password', sensitive: true }],
+  },
+  {
+    key: 'tdsTracers',
+    title: 'TDS Tracers',
+    fields: [linkField, { name: 'userId', label: 'User ID', sensitive: true }, { name: 'password', label: 'Password', sensitive: true }],
+  },
+  {
+    key: 'bulkDownload',
+    title: '26 Bulk Download',
+    fields: [linkField, { name: 'userId', label: 'User ID', sensitive: true }, { name: 'password', label: 'Password', sensitive: true }],
+  },
+];
+
+type TabKey = 'overview' | 'tasks' | 'gst' | 'income-tax' | 'bank' | 'login-details';
+
+const TAB_CONFIG: Array<{ key: TabKey; label: string; module?: AccountantModule }> = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'tasks', label: 'Tasks' },
+  { key: 'gst', label: 'GST', module: AccountantModule.GST },
+  { key: 'income-tax', label: 'Income Tax & TDS', module: AccountantModule.INCOME_TAX },
+  { key: 'bank', label: 'Bank Operations', module: AccountantModule.BANK_OPERATIONS },
+  { key: 'login-details', label: 'Login Details', module: AccountantModule.LOGIN_DETAILS },
 ];
 
 interface CompanyDetail {
@@ -71,10 +114,16 @@ interface CompanyDetail {
 export default function CompanyDetailPage() {
   const params = useParams();
   const companyId = params.id as string;
+  const { hasAccess, accessibleModules } = useModuleAccess();
   const [company, setCompany] = useState<CompanyDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState<TabKey>('overview');
+
+  const visibleTabs = useMemo(
+    () => TAB_CONFIG.filter((t) => !t.module || hasAccess(t.module)),
+    [hasAccess]
+  );
 
   const fetchCompany = useCallback(async () => {
     setLoading(true);
@@ -94,10 +143,14 @@ export default function CompanyDetailPage() {
     fetchCompany();
   }, [fetchCompany]);
 
+  useEffect(() => {
+    if (!visibleTabs.some((t) => t.key === tab)) {
+      setTab(visibleTabs[0]?.key ?? 'overview');
+    }
+  }, [visibleTabs, tab]);
+
   if (loading) return <LoadingState />;
   if (error || !company) return <ErrorAlert message={error || 'Company not found'} onRetry={fetchCompany} />;
-
-  const tabs = ['Overview', 'Tasks', 'GST', 'Income Tax & TDS', 'Bank Operations', 'Login Details'];
 
   return (
     <>
@@ -117,11 +170,17 @@ export default function CompanyDetailPage() {
         </Box>
       </Box>
 
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }} variant="scrollable" scrollButtons="auto">
-        {tabs.map((t) => <Tab key={t} label={t} />)}
+      <Tabs
+        value={tab}
+        onChange={(_, v) => setTab(v as TabKey)}
+        sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+        variant="scrollable"
+        scrollButtons="auto"
+      >
+        {visibleTabs.map((t) => <Tab key={t.key} value={t.key} label={t.label} />)}
       </Tabs>
 
-      {tab === 0 && (
+      {tab === 'overview' && (
         <Grid container spacing={3}>
           <Grid size={{ xs: 12 }}>
             <EditCompanyPanel
@@ -130,7 +189,11 @@ export default function CompanyDetailPage() {
             />
           </Grid>
           <Grid size={{ xs: 12 }}>
-            <CompanySectionsSummary companyId={companyId} onNavigateTab={setTab} />
+            <CompanySectionsSummary
+              companyId={companyId}
+              accessibleModules={accessibleModules}
+              onNavigateTab={(tabKey) => setTab(tabKey as TabKey)}
+            />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <Card>
@@ -176,11 +239,29 @@ export default function CompanyDetailPage() {
         </Grid>
       )}
 
-      {tab === 1 && <TasksPanel companyId={companyId} />}
-      {tab === 2 && <CredentialsPanel companyId={companyId} apiPath="gst" sections={gstSections} />}
-      {tab === 3 && <CredentialsPanel companyId={companyId} apiPath="income-tax" sections={incomeTaxSections} />}
-      {tab === 4 && <BankOperationsPanel companyId={companyId} />}
-      {tab === 5 && <CompanyLoginDetailsPanel companyId={companyId} />}
+      {tab === 'tasks' && <TasksPanel companyId={companyId} />}
+      {tab === 'gst' && (
+        <CredentialsPanel
+          companyId={companyId}
+          apiPath="gst"
+          sections={gstSections}
+          canEdit={hasAccess(AccountantModule.GST)}
+        />
+      )}
+      {tab === 'income-tax' && (
+        <CredentialsPanel
+          companyId={companyId}
+          apiPath="income-tax"
+          sections={incomeTaxSections}
+          canEdit={hasAccess(AccountantModule.INCOME_TAX)}
+        />
+      )}
+      {tab === 'bank' && (
+        <BankOperationsPanel companyId={companyId} canEdit={hasAccess(AccountantModule.BANK_OPERATIONS)} />
+      )}
+      {tab === 'login-details' && (
+        <CompanyLoginDetailsPanel companyId={companyId} canEdit={hasAccess(AccountantModule.LOGIN_DETAILS)} />
+      )}
     </>
   );
 }

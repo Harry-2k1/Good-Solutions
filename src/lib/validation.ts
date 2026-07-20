@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CompanyType, TaskStatus, UserRole } from '@/types';
+import { CompanyType, TaskStatus, UserRole, AccountantModule } from '@/types';
 
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -11,6 +11,13 @@ export const createUserSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   role: z.nativeEnum(UserRole),
+  moduleAccess: z.array(z.nativeEnum(AccountantModule)).optional(),
+});
+
+export const updateUserSchema = z.object({
+  name: z.string().min(2).optional(),
+  isActive: z.boolean().optional(),
+  moduleAccess: z.array(z.nativeEnum(AccountantModule)).optional(),
 });
 
 export const contactSchema = z.object({
@@ -43,6 +50,7 @@ export const createCompanySchema = z.object({
 });
 
 export const credentialsSchema = z.object({
+  link: z.string().url('Invalid URL').optional().or(z.literal('')),
   username: z.string().optional(),
   password: z.string().optional(),
   panId: z.string().optional(),
@@ -57,6 +65,7 @@ export const gstLoginSchema = credentialsSchema.extend({
 
 export const bankOperationSchema = z.object({
   bankName: z.string().min(1, 'Bank name is required'),
+  link: z.string().url('Invalid URL').optional().or(z.literal('')),
   userId: z.string().optional(),
   loginPassword: z.string().optional(),
   transactionPassword: z.string().optional(),

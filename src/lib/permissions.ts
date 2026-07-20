@@ -1,4 +1,4 @@
-import { UserRole } from '@/types';
+import { UserRole, AccountantModule } from '@/types';
 
 export function canManageUsers(role: UserRole): boolean {
   return role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN;
@@ -15,6 +15,10 @@ export function canCreateRole(creatorRole: UserRole, targetRole: UserRole): bool
 }
 
 export function canViewUsers(role: UserRole): boolean {
+  return role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN;
+}
+
+export function canManageModuleAccess(role: UserRole): boolean {
   return role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN;
 }
 
@@ -40,3 +44,5 @@ export function getRoleLabel(role: UserRole): string {
       return role;
   }
 }
+
+export { accountantModuleLabels } from '@/types';

@@ -35,6 +35,7 @@ const UserSchema = new mongoose.Schema({
   password: String,
   role: String,
   organizationId: mongoose.Schema.Types.ObjectId,
+  moduleAccess: { type: [String], default: [] },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 
@@ -56,8 +57,18 @@ async function seed() {
   }
 
   const existing = await User.findOne({ email: SUPER_ADMIN_EMAIL });
+  const resetPassword = process.env.SUPER_ADMIN_RESET_PASSWORD === 'true';
+
   if (existing) {
-    console.log(`Super admin already exists: ${SUPER_ADMIN_EMAIL}`);
+    if (resetPassword) {
+      existing.password = await bcrypt.hash(SUPER_ADMIN_PASSWORD, 12);
+      existing.isActive = true;
+      await existing.save();
+      console.log(`Reset super admin password: ${SUPER_ADMIN_EMAIL}`);
+      console.log(`Password: ${SUPER_ADMIN_PASSWORD}`);
+    } else {
+      console.log(`Super admin already exists: ${SUPER_ADMIN_EMAIL}`);
+    }
   } else {
     const hashedPassword = await bcrypt.hash(SUPER_ADMIN_PASSWORD, 12);
     await User.create({

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SessionUser } from '@/types';
 import { applyCorsHeaders } from '@/lib/cors';
 import { isCorsEnabled } from '@/lib/env';
+import { ModuleAccessError } from '@/lib/module-access';
 
 export async function getSessionUser(): Promise<SessionUser | null> {
   const session = await auth();
@@ -47,4 +48,10 @@ export function apiError(message: string, status: number, request?: NextRequest)
 
 export function apiSuccess<T>(data: T, status = 200, request?: NextRequest) {
   return withOptionalCors(request, NextResponse.json(data, { status }));
+}
+
+export function handleApiError(error: unknown, request?: NextRequest) {
+  if (error instanceof AuthError) return apiError(error.message, error.status, request);
+  if (error instanceof ModuleAccessError) return apiError('You do not have access to this section', 403, request);
+  return apiError('Internal server error', 500, request);
 }

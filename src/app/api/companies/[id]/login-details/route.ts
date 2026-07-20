@@ -1,9 +1,11 @@
 import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db';
-import { requireAuth, apiError, apiSuccess, AuthError } from '@/lib/api-utils';
+import { requireAuth, apiError, apiSuccess, handleApiError } from '@/lib/api-utils';
 import { Company } from '@/models/Company';
 import { companyLoginDetailSchema } from '@/lib/validation';
 import { findSubdocumentById, removeSubdocumentById, toPlainArray } from '@/lib/mongoose-utils';
+import { requireModuleAccess } from '@/lib/module-access';
+import { AccountantModule } from '@/types';
 
 async function getCompany(id: string, organizationId: string) {
   await connectDB();
@@ -16,6 +18,7 @@ export async function GET(
 ) {
   try {
     const sessionUser = await requireAuth();
+    requireModuleAccess(sessionUser, AccountantModule.LOGIN_DETAILS);
     const { id } = await params;
 
     await connectDB();
@@ -24,8 +27,7 @@ export async function GET(
 
     return apiSuccess(toPlainArray(company.companyLoginDetails));
   } catch (error) {
-    if (error instanceof AuthError) return apiError(error.message, error.status);
-    return apiError('Internal server error', 500);
+    return handleApiError(error);
   }
 }
 
@@ -35,6 +37,7 @@ export async function POST(
 ) {
   try {
     const sessionUser = await requireAuth();
+    requireModuleAccess(sessionUser, AccountantModule.LOGIN_DETAILS);
     const { id } = await params;
     const body = await request.json();
     const parsed = companyLoginDetailSchema.safeParse(body);
@@ -51,8 +54,7 @@ export async function POST(
 
     return apiSuccess(company.companyLoginDetails[company.companyLoginDetails.length - 1], 201);
   } catch (error) {
-    if (error instanceof AuthError) return apiError(error.message, error.status);
-    return apiError('Internal server error', 500);
+    return handleApiError(error);
   }
 }
 
@@ -62,6 +64,7 @@ export async function PATCH(
 ) {
   try {
     const sessionUser = await requireAuth();
+    requireModuleAccess(sessionUser, AccountantModule.LOGIN_DETAILS);
     const { id } = await params;
     const body = await request.json();
     const { entryId, ...data } = body;
@@ -81,8 +84,7 @@ export async function PATCH(
     await company.save();
     return apiSuccess(entry);
   } catch (error) {
-    if (error instanceof AuthError) return apiError(error.message, error.status);
-    return apiError('Internal server error', 500);
+    return handleApiError(error);
   }
 }
 
@@ -92,6 +94,7 @@ export async function DELETE(
 ) {
   try {
     const sessionUser = await requireAuth();
+    requireModuleAccess(sessionUser, AccountantModule.LOGIN_DETAILS);
     const { id } = await params;
     const entryId = request.nextUrl.searchParams.get('entryId');
 
@@ -108,7 +111,6 @@ export async function DELETE(
 
     return apiSuccess({ message: 'Login detail deleted' });
   } catch (error) {
-    if (error instanceof AuthError) return apiError(error.message, error.status);
-    return apiError('Internal server error', 500);
+    return handleApiError(error);
   }
 }

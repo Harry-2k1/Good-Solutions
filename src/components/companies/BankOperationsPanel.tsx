@@ -27,14 +27,15 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { useState, useEffect, useCallback } from 'react';
 import { PasswordField } from '@/components/common/PageElements';
+import { FieldValueRow } from '@/components/common/FieldValueRow';
 import { MASK_PLACEHOLDER } from '@/lib/credentials-display';
 
 interface BankEntry {
   _id: string;
   bankName: string;
+  link?: string;
   userId?: string;
   loginPassword?: string;
   transactionPassword?: string;
@@ -42,14 +43,23 @@ interface BankEntry {
   otpPhoneNumber?: string;
 }
 
-export default function BankOperationsPanel({ companyId }: { companyId: string }) {
+const SENSITIVE_FIELDS = new Set(['loginPassword', 'transactionPassword']);
+
+interface BankOperationsPanelProps {
+  companyId: string;
+  canEdit?: boolean;
+}
+
+export default function BankOperationsPanel({ companyId, canEdit = true }: BankOperationsPanelProps) {
   const [entries, setEntries] = useState<BankEntry[]>([]);
-  const [revealed, setRevealed] = useState(false);
+  const [revealedEntries, setRevealedEntries] = useState<BankEntry[]>([]);
+  const [revealedFields, setRevealedFields] = useState<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewEntry, setViewEntry] = useState<BankEntry | null>(null);
   const [editing, setEditing] = useState<BankEntry | null>(null);
   const [form, setForm] = useState({
     bankName: '',
+    link: '',
     userId: '',
     loginPassword: '',
     transactionPassword: '',
@@ -60,30 +70,31 @@ export default function BankOperationsPanel({ companyId }: { companyId: string }
 
   const fetchEntries = useCallback(async (reveal = false) => {
     const res = await fetch(`/api/companies/${companyId}/bank-operations?reveal=${reveal}`);
-    if (res.ok) setEntries(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      if (reveal) {
+        setRevealedEntries(data);
+      } else {
+        setEntries(data);
+      }
+    }
   }, [companyId]);
 
   useEffect(() => {
     fetchEntries(false);
   }, [fetchEntries]);
 
-  const toggleReveal = async () => {
-    const next = !revealed;
-    setRevealed(next);
-    await fetchEntries(next);
-    if (viewEntry) {
-      const res = await fetch(`/api/companies/${companyId}/bank-operations?reveal=${next}`);
-      if (res.ok) {
-        const list = await res.json();
-        const updated = list.find((e: BankEntry) => e._id === viewEntry._id);
-        if (updated) setViewEntry(updated);
-      }
-    }
-  };
-
   const openCreate = () => {
     setEditing(null);
-    setForm({ bankName: '', userId: '', loginPassword: '', transactionPassword: '', otpUsername: '', otpPhoneNumber: '' });
+    setForm({
+      bankName: '',
+      link: '',
+      userId: '',
+      loginPassword: '',
+      transactionPassword: '',
+      otpUsername: '',
+      otpPhoneNumber: '',
+    });
     setDialogOpen(true);
   };
 
@@ -91,6 +102,7 @@ export default function BankOperationsPanel({ companyId }: { companyId: string }
     setEditing(entry);
     setForm({
       bankName: entry.bankName,
+      link: entry.link || '',
       userId: entry.userId || '',
       loginPassword: entry.loginPassword || '',
       transactionPassword: entry.transactionPassword || '',
@@ -103,6 +115,7 @@ export default function BankOperationsPanel({ companyId }: { companyId: string }
 
   const openView = (entry: BankEntry) => {
     setViewEntry(entry);
+    setRevealedFields(new Set());
   };
 
   const handleSave = async () => {
@@ -115,7 +128,8 @@ export default function BankOperationsPanel({ companyId }: { companyId: string }
 
     if (res.ok) {
       setDialogOpen(false);
-      fetchEntries(revealed);
+      fetchEntries(false);
+      if (revealedEntries.length > 0) fetchEntries(true);
       setSnack({ open: true, message: 'Saved successfully', severity: 'success' });
     } else {
       const err = await res.json();
@@ -127,13 +141,58 @@ export default function BankOperationsPanel({ companyId }: { companyId: string }
     if (!confirm('Delete this bank entry?')) return;
     await fetch(`/api/companies/${companyId}/bank-operations?entryId=${entryId}`, { method: 'DELETE' });
     setViewEntry(null);
-    fetchEntries(revealed);
+    fetchEntries(false);
+    if (revealedEntries.length > 0) fetchEntries(true);
   };
 
-  const displaySecret = (value?: string) => {
-    if (!value) return '—';
-    return revealed ? value : MASK_PLACEHOLDER;
+  const getViewEntry = () => {
+    if (!viewEntry) return null;
+    const revealed = revealedEntries.find((e) => e._id === viewEntry._id);
+    return revealed ?? viewEntry;
   };
+
+  const toggleFieldReveal = async (fieldKey: string) => {
+    if (revealedFields.has(fieldKey)) {
+      setRevealedFields((prev) => {
+        const next = new Set(prev);
+        next.delete(fieldKey);
+        return next;
+      });
+      return;
+    }
+
+    if (revealedEntries.length === 0) {
+      await fetchEntries(true);
+    }
+
+    setRevealedFields((prev) => new Set(prev).add(fieldKey));
+  };
+
+  const getFieldValue = (entry: BankEntry, field: keyof BankEntry) => {
+    const revealed = revealedEntries.find((e) => e._id === entry._id);
+    const fieldKey = `${entry._id}:${field}`;
+    if (SENSITIVE_FIELDS.has(field) && revealedFields.has(fieldKey) && revealed) {
+      return revealed[field] as string | undefined;
+    }
+    return entry[field] as string | undefined;
+  };
+
+  const viewFields: Array<{
+    key: keyof BankEntry;
+    label: string;
+    sensitive?: boolean;
+    isLink?: boolean;
+  }> = [
+    { key: 'bankName', label: 'Bank Name' },
+    { key: 'link', label: 'Portal Link', isLink: true },
+    { key: 'userId', label: 'User ID' },
+    { key: 'loginPassword', label: 'Login Password', sensitive: true },
+    { key: 'transactionPassword', label: 'Transaction Password', sensitive: true },
+    { key: 'otpUsername', label: 'OTP Username' },
+    { key: 'otpPhoneNumber', label: 'OTP Phone Number' },
+  ];
+
+  const activeView = getViewEntry();
 
   return (
     <Card>
@@ -145,21 +204,11 @@ export default function BankOperationsPanel({ companyId }: { companyId: string }
               {entries.length} bank {entries.length === 1 ? 'entry' : 'entries'} saved
             </Typography>
           </Box>
-          <Box>
-            {entries.length > 0 && (
-              <Button
-                size="small"
-                startIcon={revealed ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                onClick={toggleReveal}
-                sx={{ mr: 1 }}
-              >
-                {revealed ? 'Hide Secrets' : 'View Secrets'}
-              </Button>
-            )}
+          {canEdit && (
             <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={openCreate}>
               Add Bank
             </Button>
-          </Box>
+          )}
         </Box>
         <TableContainer>
           <Table size="small">
@@ -186,14 +235,18 @@ export default function BankOperationsPanel({ companyId }: { companyId: string }
                       <Typography sx={{ fontWeight: 500 }}>{e.bankName}</Typography>
                     </TableCell>
                     <TableCell>{e.userId || '—'}</TableCell>
-                    <TableCell>{displaySecret(e.loginPassword)}</TableCell>
+                    <TableCell>{e.loginPassword || '—'}</TableCell>
                     <TableCell>{e.otpPhoneNumber || '—'}</TableCell>
                     <TableCell align="right" onClick={(ev) => ev.stopPropagation()}>
                       <IconButton size="small" onClick={() => openView(e)} title="View details">
                         <VisibilityIcon fontSize="small" />
                       </IconButton>
-                      <IconButton size="small" onClick={() => openEdit(e)}><EditIcon fontSize="small" /></IconButton>
-                      <IconButton size="small" color="error" onClick={() => handleDelete(e._id)}><DeleteIcon fontSize="small" /></IconButton>
+                      {canEdit && (
+                        <>
+                          <IconButton size="small" onClick={() => openEdit(e)}><EditIcon fontSize="small" /></IconButton>
+                          <IconButton size="small" color="error" onClick={() => handleDelete(e._id)}><DeleteIcon fontSize="small" /></IconButton>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -203,36 +256,49 @@ export default function BankOperationsPanel({ companyId }: { companyId: string }
         </TableContainer>
       </CardContent>
 
-      <Dialog open={Boolean(viewEntry)} onClose={() => setViewEntry(null)} maxWidth="sm" fullWidth>
-        {viewEntry && (
+      <Dialog open={Boolean(activeView)} onClose={() => setViewEntry(null)} maxWidth="sm" fullWidth>
+        {activeView && (
           <>
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {viewEntry.bankName}
+              {activeView.bankName}
               <Chip label="Saved" size="small" color="success" variant="outlined" />
             </DialogTitle>
             <DialogContent>
               <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                {[
-                  { label: 'Bank Name', value: viewEntry.bankName },
-                  { label: 'User ID', value: viewEntry.userId },
-                  { label: 'Login Password', value: displaySecret(viewEntry.loginPassword) },
-                  { label: 'Transaction Password', value: displaySecret(viewEntry.transactionPassword) },
-                  { label: 'OTP Username', value: viewEntry.otpUsername },
-                  { label: 'OTP Phone Number', value: viewEntry.otpPhoneNumber },
-                ].map((row) => (
-                  <Grid size={{ xs: 12, sm: 6 }} key={row.label}>
-                    <Typography variant="caption" color="text.secondary">{row.label}</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500, wordBreak: 'break-all' }}>
-                      {row.value || '—'}
-                    </Typography>
-                  </Grid>
-                ))}
+                {viewFields.map((field) => {
+                  const fieldKey = `${activeView._id}:${field.key}`;
+                  const value = getFieldValue(activeView, field.key);
+                  const isRevealed = revealedFields.has(fieldKey);
+                  let displayValue = value || undefined;
+                  if (field.sensitive && value && !isRevealed) {
+                    displayValue = MASK_PLACEHOLDER;
+                  }
+                  return (
+                    <Grid size={{ xs: 12, sm: 6 }} key={field.key}>
+                      <FieldValueRow
+                        label={field.label}
+                        value={value}
+                        displayValue={displayValue}
+                        sensitive={field.sensitive}
+                        isLink={field.isLink}
+                        revealed={isRevealed}
+                        onToggleReveal={
+                          field.sensitive
+                            ? () => toggleFieldReveal(fieldKey)
+                            : undefined
+                        }
+                        copyable={!field.isLink}
+                      />
+                    </Grid>
+                  );
+                })}
               </Grid>
             </DialogContent>
             <DialogActions>
               <Button onClick={() => setViewEntry(null)}>Close</Button>
-              <Button onClick={toggleReveal}>{revealed ? 'Hide Secrets' : 'View Secrets'}</Button>
-              <Button variant="contained" onClick={() => openEdit(viewEntry)}>Edit</Button>
+              {canEdit && (
+                <Button variant="contained" onClick={() => openEdit(activeView)}>Edit</Button>
+              )}
             </DialogActions>
           </>
         )}
@@ -245,14 +311,17 @@ export default function BankOperationsPanel({ companyId }: { companyId: string }
             <Grid size={{ xs: 12 }}>
               <TextField fullWidth label="Bank Name" value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} required />
             </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField fullWidth label="Portal Link" type="url" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} placeholder="https://" />
+            </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField fullWidth label="User ID" value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <PasswordField label="Login Password" value={form.loginPassword} onChange={(v) => setForm({ ...form, loginPassword: v })} revealed={revealed} showToggle={revealed} />
+              <PasswordField label="Login Password" value={form.loginPassword} onChange={(v) => setForm({ ...form, loginPassword: v })} showToggle />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <PasswordField label="Transaction Password" value={form.transactionPassword} onChange={(v) => setForm({ ...form, transactionPassword: v })} revealed={revealed} showToggle={revealed} />
+              <PasswordField label="Transaction Password" value={form.transactionPassword} onChange={(v) => setForm({ ...form, transactionPassword: v })} showToggle />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField fullWidth label="OTP Username" value={form.otpUsername} onChange={(e) => setForm({ ...form, otpUsername: e.target.value })} />

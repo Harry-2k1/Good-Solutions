@@ -4,6 +4,23 @@ export enum UserRole {
   USER = 'USER',
 }
 
+/** Module access roles assigned to accountants (multi-select). */
+export enum AccountantModule {
+  GST = 'gst',
+  INCOME_TAX = 'income_tax',
+  BANK_OPERATIONS = 'bank_operations',
+  LOGIN_DETAILS = 'login_details',
+}
+
+export const ALL_ACCOUNTANT_MODULES = Object.values(AccountantModule);
+
+export const accountantModuleLabels: Record<AccountantModule, string> = {
+  [AccountantModule.GST]: 'GST',
+  [AccountantModule.INCOME_TAX]: 'Income Tax & TDS',
+  [AccountantModule.BANK_OPERATIONS]: 'Bank Operations',
+  [AccountantModule.LOGIN_DETAILS]: 'Login Details',
+};
+
 export enum TaskStatus {
   OPEN = 'open',
   IN_PROGRESS = 'inprogress',
@@ -59,4 +76,5 @@ export interface SessionUser {
   name: string;
   role: UserRole;
   organizationId: string;
+  moduleAccess: AccountantModule[];
 }

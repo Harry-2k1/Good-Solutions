@@ -12,28 +12,33 @@ import {
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import { useEffect, useState } from 'react';
+import { alpha } from '@mui/material/styles';
 import { hasConfiguredData } from '@/lib/credentials-display';
+import { AccountantModule } from '@/types';
 
 interface Props {
   companyId: string;
-  onNavigateTab: (index: number) => void;
+  accessibleModules: AccountantModule[];
+  onNavigateTab: (tabKey: string) => void;
 }
 
 const sections = [
-  { label: 'GST', tab: 2, api: 'gst' },
-  { label: 'Income Tax & TDS', tab: 3, api: 'income-tax' },
-  { label: 'Bank Operations', tab: 4, api: 'bank-operations' },
-  { label: 'Login Details', tab: 5, api: 'login-details' },
+  { label: 'GST', tabKey: 'gst', api: 'gst', module: AccountantModule.GST },
+  { label: 'Income Tax & TDS', tabKey: 'income-tax', api: 'income-tax', module: AccountantModule.INCOME_TAX },
+  { label: 'Bank Operations', tabKey: 'bank', api: 'bank-operations', module: AccountantModule.BANK_OPERATIONS },
+  { label: 'Login Details', tabKey: 'login-details', api: 'login-details', module: AccountantModule.LOGIN_DETAILS },
 ];
 
-export default function CompanySectionsSummary({ companyId, onNavigateTab }: Props) {
+export default function CompanySectionsSummary({ companyId, accessibleModules, onNavigateTab }: Props) {
   const [status, setStatus] = useState<Record<string, boolean>>({});
+
+  const visibleSections = sections.filter((s) => accessibleModules.includes(s.module));
 
   useEffect(() => {
     async function load() {
       const results: Record<string, boolean> = {};
       await Promise.all(
-        sections.map(async (s) => {
+        visibleSections.map(async (s) => {
           try {
             const res = await fetch(`/api/companies/${companyId}/${s.api}`);
             if (!res.ok) return;
@@ -52,8 +57,10 @@ export default function CompanySectionsSummary({ companyId, onNavigateTab }: Pro
       );
       setStatus(results);
     }
-    load();
-  }, [companyId]);
+    if (visibleSections.length > 0) load();
+  }, [companyId, accessibleModules.join(',')]);
+
+  if (visibleSections.length === 0) return null;
 
   return (
     <Card>
@@ -63,7 +70,7 @@ export default function CompanySectionsSummary({ companyId, onNavigateTab }: Pro
           Quick view of configured sections for this company
         </Typography>
         <Grid container spacing={1.5}>
-          {sections.map((s) => {
+          {visibleSections.map((s) => {
             const configured = status[s.api];
             return (
               <Grid size={{ xs: 12, sm: 6 }} key={s.api}>
@@ -76,7 +83,16 @@ export default function CompanySectionsSummary({ companyId, onNavigateTab }: Pro
                     borderRadius: 2,
                     border: '1px solid',
                     borderColor: 'divider',
-                    bgcolor: configured ? 'success.50' : 'grey.50',
+                    bgcolor: (theme) =>
+                      configured
+                        ? alpha(
+                            theme.palette.success.main,
+                            theme.palette.mode === 'dark' ? 0.14 : 0.08
+                          )
+                        : alpha(
+                            theme.palette.action.disabled,
+                            theme.palette.mode === 'dark' ? 0.12 : 0.06
+                          ),
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -93,7 +109,7 @@ export default function CompanySectionsSummary({ companyId, onNavigateTab }: Pro
                       variant="outlined"
                     />
                   </Box>
-                  <Button size="small" onClick={() => onNavigateTab(s.tab)}>
+                  <Button size="small" onClick={() => onNavigateTab(s.tabKey)}>
                     View
                   </Button>
                 </Box>

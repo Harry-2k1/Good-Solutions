@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
-import { UserRole } from '@/types';
+import { UserRole, AccountantModule } from '@/types';
 
 export interface IUser extends Document {
   name: string;
@@ -7,6 +7,7 @@ export interface IUser extends Document {
   password: string;
   role: UserRole;
   organizationId: mongoose.Types.ObjectId;
+  moduleAccess: AccountantModule[];
   isActive: boolean;
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -24,6 +25,10 @@ const UserSchema = new Schema<IUser>(
       required: true,
     },
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true },
+    moduleAccess: {
+      type: [{ type: String, enum: Object.values(AccountantModule) }],
+      default: [],
+    },
     isActive: { type: Boolean, default: true },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
