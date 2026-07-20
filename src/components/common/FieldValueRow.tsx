@@ -1,11 +1,13 @@
 'use client';
 
-import { Box, IconButton, Typography, Button, Tooltip } from '@mui/material';
+import { Box, IconButton, Typography, Button, Tooltip, CircularProgress, Snackbar, Alert } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { useState } from 'react';
+import { MASK_PLACEHOLDER } from '@/lib/credentials-display';
+import { copyToClipboard } from '@/lib/copy-to-clipboard';
 
 interface FieldValueRowProps {
   label: string;
@@ -16,6 +18,8 @@ interface FieldValueRowProps {
   revealed?: boolean;
   onToggleReveal?: () => void;
   copyable?: boolean;
+  /** Fetch the real value for copy when the field is masked. */
+  onResolveCopy?: () => Promise<string | undefined>;
 }
 
 export function FieldValueRow({
@@ -27,20 +31,60 @@ export function FieldValueRow({
   revealed = false,
   onToggleReveal,
   copyable = false,
+  onResolveCopy,
 }: FieldValueRowProps) {
   const [copied, setCopied] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [snackOpen, setSnackOpen] = useState(false);
+  const [snackMessage, setSnackMessage] = useState('');
+  const [snackSeverity, setSnackSeverity] = useState<'success' | 'error'>('success');
   const hasValue = value !== undefined && value !== null && value !== '';
   const shown = displayValue ?? (hasValue ? value : '—');
-  const canCopy = copyable && hasValue && (!sensitive || revealed);
+  const showCopy = copyable && hasValue;
 
   const handleCopy = async () => {
-    if (!canCopy || !value) return;
+    if (!showCopy) return;
+
+    setCopying(true);
     try {
-      await navigator.clipboard.writeText(value);
+      let text: string | undefined;
+
+      if (sensitive) {
+        if (value && value !== MASK_PLACEHOLDER) {
+          text = value;
+        } else if (onResolveCopy) {
+          text = await onResolveCopy();
+        }
+      } else {
+        text = value;
+      }
+
+      if (!text || text === MASK_PLACEHOLDER) {
+        setSnackMessage(`Could not copy ${label.toLowerCase()}`);
+        setSnackSeverity('error');
+        setSnackOpen(true);
+        return;
+      }
+
+      const copiedOk = await copyToClipboard(text);
+      if (!copiedOk) {
+        setSnackMessage('Copy blocked by browser — use HTTPS or localhost');
+        setSnackSeverity('error');
+        setSnackOpen(true);
+        return;
+      }
+
       setCopied(true);
+      setSnackMessage(`${label} copied successfully`);
+      setSnackSeverity('success');
+      setSnackOpen(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      /* clipboard unavailable */
+      setSnackMessage(`Could not copy ${label.toLowerCase()}`);
+      setSnackSeverity('error');
+      setSnackOpen(true);
+    } finally {
+      setCopying(false);
     }
   };
 
@@ -81,14 +125,33 @@ export function FieldValueRow({
             </IconButton>
           </Tooltip>
         )}
-        {canCopy && (
+        {showCopy && (
           <Tooltip title={copied ? 'Copied!' : 'Copy'}>
-            <IconButton size="small" onClick={handleCopy} aria-label="Copy value">
-              <ContentCopyIcon fontSize="small" />
+            <IconButton
+              size="small"
+              onClick={handleCopy}
+              disabled={copying}
+              aria-label="Copy value"
+            >
+              {copying ? (
+                <CircularProgress size={14} />
+              ) : (
+                <ContentCopyIcon fontSize="small" />
+              )}
             </IconButton>
           </Tooltip>
         )}
       </Box>
+      <Snackbar
+        open={snackOpen}
+        autoHideDuration={2500}
+        onClose={() => setSnackOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity={snackSeverity} variant="filled" onClose={() => setSnackOpen(false)} sx={{ width: '100%' }}>
+          {snackMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

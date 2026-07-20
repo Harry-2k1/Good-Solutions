@@ -19,12 +19,16 @@ import {
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PasswordField } from '@/components/common/PageElements';
 import { FieldValueRow } from '@/components/common/FieldValueRow';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
 import { hasConfiguredData, formatDisplayDate, MASK_PLACEHOLDER, normalizeSectionData } from '@/lib/credentials-display';
+import {
+  fetchRevealedCredentialSections,
+  pickCredentialField,
+} from '@/lib/fetch-revealed-credentials';
 import { alpha } from '@mui/material/styles';
 
 interface CredentialSection {
@@ -64,9 +68,10 @@ export default function CredentialsPanel({
     message: '',
     severity: 'success',
   });
+  const revealedCacheRef = useRef<Record<string, Record<string, string>>>({});
 
-  const fetchData = useCallback(async (reveal = false) => {
-    setLoading(true);
+  const fetchData = useCallback(async (reveal = false, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await fetch(`/api/companies/${companyId}/${apiPath}?reveal=${reveal}`);
       if (!res.ok) throw new Error('Failed to load data');
@@ -74,13 +79,18 @@ export default function CredentialsPanel({
       const normalized = normalizeSectionData(json as Record<string, unknown>);
       if (reveal) {
         setRevealedData(normalized);
-      } else {
-        setData(normalized);
+        revealedCacheRef.current = normalized;
+        return normalized;
       }
+      setData(normalized);
+      return normalized;
     } catch {
-      setSnack({ open: true, message: 'Failed to load credentials', severity: 'error' });
+      if (!silent) {
+        setSnack({ open: true, message: 'Failed to load credentials', severity: 'error' });
+      }
+      return undefined;
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [companyId, apiPath]);
 
@@ -176,6 +186,28 @@ export default function CredentialsPanel({
     return field.copyable !== false;
   };
 
+  const resolveCopyValue = useCallback(
+    async (section: string, fieldName: string, isSecret: boolean) => {
+      if (!isSecret) {
+        return data[section]?.[fieldName] || undefined;
+      }
+
+      if (!data[section]?.[fieldName]) return undefined;
+
+      let revealedSections = revealedCacheRef.current;
+      if (!pickCredentialField(revealedSections, section, fieldName)) {
+        revealedSections = (await fetchRevealedCredentialSections(companyId, apiPath)) ?? {};
+        if (Object.keys(revealedSections).length > 0) {
+          revealedCacheRef.current = revealedSections;
+          setRevealedData(revealedSections);
+        }
+      }
+
+      return pickCredentialField(revealedSections, section, fieldName);
+    },
+    [companyId, apiPath, data]
+  );
+
   return (
     <Card>
       <Tabs
@@ -262,6 +294,16 @@ export default function CredentialsPanel({
                             : undefined
                         }
                         copyable={isCopyable(field)}
+                        onResolveCopy={
+                          isCopyable(field)
+                            ? () =>
+                                resolveCopyValue(
+                                  sectionKey,
+                                  field.name,
+                                  Boolean(field.sensitive || field.type === 'password')
+                                )
+                            : undefined
+                        }
                       />
                     </Grid>
                   ))}

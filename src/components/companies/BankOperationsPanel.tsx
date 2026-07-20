@@ -27,10 +27,14 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PasswordField } from '@/components/common/PageElements';
 import { FieldValueRow } from '@/components/common/FieldValueRow';
 import { MASK_PLACEHOLDER } from '@/lib/credentials-display';
+import {
+  fetchRevealedBankEntries,
+  pickBankField,
+} from '@/lib/fetch-revealed-credentials';
 
 interface BankEntry {
   _id: string;
@@ -67,6 +71,7 @@ export default function BankOperationsPanel({ companyId, canEdit = true }: BankO
     otpPhoneNumber: '',
   });
   const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const revealedCacheRef = useRef<BankEntry[]>([]);
 
   const fetchEntries = useCallback(async (reveal = false) => {
     const res = await fetch(`/api/companies/${companyId}/bank-operations?reveal=${reveal}`);
@@ -74,10 +79,13 @@ export default function BankOperationsPanel({ companyId, canEdit = true }: BankO
       const data = await res.json();
       if (reveal) {
         setRevealedEntries(data);
+        revealedCacheRef.current = data;
       } else {
         setEntries(data);
       }
+      return data as BankEntry[];
     }
+    return undefined;
   }, [companyId]);
 
   useEffect(() => {
@@ -176,6 +184,29 @@ export default function BankOperationsPanel({ companyId, canEdit = true }: BankO
     }
     return entry[field] as string | undefined;
   };
+
+  const resolveCopyValue = useCallback(
+    async (entryId: string, field: keyof BankEntry) => {
+      if (!SENSITIVE_FIELDS.has(field)) {
+        return entries.find((e) => e._id === entryId)?.[field] as string | undefined;
+      }
+
+      const masked = entries.find((e) => e._id === entryId)?.[field] as string | undefined;
+      if (!masked) return undefined;
+
+      let revealedList = revealedCacheRef.current;
+      if (!pickBankField(revealedList, entryId, field)) {
+        revealedList = (await fetchRevealedBankEntries<BankEntry>(companyId)) ?? [];
+        if (revealedList.length > 0) {
+          revealedCacheRef.current = revealedList;
+          setRevealedEntries(revealedList);
+        }
+      }
+
+      return pickBankField(revealedList, entryId, field);
+    },
+    [companyId, entries]
+  );
 
   const viewFields: Array<{
     key: keyof BankEntry;
@@ -288,6 +319,7 @@ export default function BankOperationsPanel({ companyId, canEdit = true }: BankO
                             : undefined
                         }
                         copyable={!field.isLink}
+                        onResolveCopy={() => resolveCopyValue(activeView._id, field.key)}
                       />
                     </Grid>
                   );
