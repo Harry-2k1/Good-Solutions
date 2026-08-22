@@ -33,11 +33,13 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import PersonOffIcon from '@mui/icons-material/PersonOff';
 import EditIcon from '@mui/icons-material/Edit';
+import LockResetIcon from '@mui/icons-material/LockReset';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback } from 'react';
 import { PageHeader, LoadingState, EmptyState, ErrorAlert } from '@/components/common/PageElements';
+import ResetPasswordDialog from '@/components/account/ResetPasswordDialog';
 import { AccountantModule, UserRole, ALL_ACCOUNTANT_MODULES, accountantModuleLabels } from '@/types';
-import { getCreatableRoles, getRoleLabel, canManageModuleAccess } from '@/lib/permissions';
+import { getCreatableRoles, getRoleLabel, canManageModuleAccess, canResetUserPassword } from '@/lib/permissions';
 
 interface UserRecord {
   _id: string;
@@ -66,6 +68,7 @@ export default function UsersPage() {
   const [error, setError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [modulesDialogOpen, setModulesDialogOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
   const [selectedModules, setSelectedModules] = useState<AccountantModule[]>([]);
   const [form, setForm] = useState({
@@ -125,6 +128,11 @@ export default function UsersPage() {
     setEditingUser(user);
     setSelectedModules(user.moduleAccess ?? []);
     setModulesDialogOpen(true);
+  };
+
+  const openPasswordDialog = (user: UserRecord) => {
+    setEditingUser(user);
+    setPasswordDialogOpen(true);
   };
 
   const handleSaveModules = async () => {
@@ -217,6 +225,11 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell align="right">
+                      {role && user.isActive && canResetUserPassword(role, user.role, user._id === session?.user?.id) && (
+                        <IconButton size="small" onClick={() => openPasswordDialog(user)} title="Reset password">
+                          <LockResetIcon fontSize="small" />
+                        </IconButton>
+                      )}
                       {canManageModules && user.role === UserRole.USER && user.isActive && (
                         <IconButton size="small" onClick={() => openModulesDialog(user)} title="Edit module access">
                           <EditIcon fontSize="small" />
@@ -320,6 +333,19 @@ export default function UsersPage() {
           <Button variant="contained" onClick={handleSaveModules}>Save</Button>
         </DialogActions>
       </Dialog>
+
+      <ResetPasswordDialog
+        open={passwordDialogOpen}
+        userId={editingUser?._id ?? null}
+        userName={editingUser?.name ?? ''}
+        onClose={() => {
+          setPasswordDialogOpen(false);
+          setEditingUser(null);
+        }}
+        onSuccess={() =>
+          setSnack({ open: true, message: 'Password reset successfully', severity: 'success' })
+        }
+      />
 
       <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack({ ...snack, open: false })}>
         <Alert severity={snack.severity}>{snack.message}</Alert>

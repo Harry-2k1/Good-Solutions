@@ -15,6 +15,8 @@ import {
   Menu,
   MenuItem,
   Divider,
+  Snackbar,
+  Alert,
   useMediaQuery,
   useTheme,
   alpha,
@@ -23,6 +25,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import BusinessIcon from "@mui/icons-material/Business";
 import PeopleIcon from "@mui/icons-material/People";
 import LogoutIcon from "@mui/icons-material/Logout";
+import LockIcon from "@mui/icons-material/Lock";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
@@ -32,6 +35,7 @@ import { UserRole } from "@/types";
 import { canViewUsers, getRoleLabel } from "@/lib/permissions";
 import BrandLogo from "@/components/common/BrandLogo";
 import ThemeSwitcher from "@/components/common/ThemeSwitcher";
+import ChangePasswordDialog from "@/components/account/ChangePasswordDialog";
 
 const DRAWER_WIDTH = 268;
 
@@ -51,6 +55,8 @@ export default function DashboardLayout({
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordSnack, setPasswordSnack] = useState(false);
 
   const role = session?.user?.role as UserRole | undefined;
   const showUsers = role && canViewUsers(role);
@@ -185,6 +191,15 @@ export default function DashboardLayout({
             <MenuItem
               onClick={() => {
                 setAnchorEl(null);
+                setPasswordDialogOpen(true);
+              }}
+            >
+              <LockIcon sx={{ mr: 1 }} fontSize="small" />
+              Change Password
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setAnchorEl(null);
                 signOut({ callbackUrl: "/login" });
               }}
             >
@@ -192,6 +207,18 @@ export default function DashboardLayout({
               Sign Out
             </MenuItem>
           </Menu>
+          <ChangePasswordDialog
+            open={passwordDialogOpen}
+            onClose={() => setPasswordDialogOpen(false)}
+            onSuccess={() => setPasswordSnack(true)}
+          />
+          <Snackbar
+            open={passwordSnack}
+            autoHideDuration={4000}
+            onClose={() => setPasswordSnack(false)}
+          >
+            <Alert severity="success">Password updated successfully</Alert>
+          </Snackbar>
         </Toolbar>
       </AppBar>
 

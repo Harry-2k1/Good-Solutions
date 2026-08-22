@@ -22,6 +22,24 @@ export function canManageModuleAccess(role: UserRole): boolean {
   return role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN;
 }
 
+export function canResetUserPassword(
+  actorRole: UserRole,
+  targetRole: UserRole,
+  isSelf = false
+): boolean {
+  if (isSelf) {
+    return actorRole === UserRole.SUPER_ADMIN;
+  }
+  if (targetRole === UserRole.SUPER_ADMIN) return false;
+  if (actorRole === UserRole.SUPER_ADMIN) {
+    return targetRole === UserRole.ADMIN || targetRole === UserRole.USER;
+  }
+  if (actorRole === UserRole.ADMIN) {
+    return targetRole === UserRole.USER;
+  }
+  return false;
+}
+
 export function getCreatableRoles(role: UserRole): UserRole[] {
   if (role === UserRole.SUPER_ADMIN) {
     return [UserRole.ADMIN, UserRole.USER];

@@ -20,6 +20,15 @@ export const updateUserSchema = z.object({
   moduleAccess: z.array(z.nativeEnum(AccountantModule)).optional(),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
+export const resetPasswordSchema = z.object({
+  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
 export const contactSchema = z.object({
   name: z.string().min(1, 'Contact name is required'),
   phoneNumbers: z.array(z.string()).default([]),
