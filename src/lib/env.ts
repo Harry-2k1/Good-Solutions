@@ -10,10 +10,6 @@ export const isDevelopment = appEnv === 'development';
 export const isCorsEnabled =
   isDevelopment && process.env.CORS_ENABLED !== 'false';
 
-export function getSiteUrl(): string {
-  return process.env.AUTH_URL || 'http://localhost:3000';
-}
-
 export function getCorsOrigins(): string[] {
   const raw = process.env.CORS_ORIGIN;
   if (raw) {

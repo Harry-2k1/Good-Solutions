@@ -17,13 +17,8 @@ import {
 
 const { auth } = NextAuth(authConfig);
 
-const publicRoutes = ['/login', '/env'];
-const publicApiPrefixes = ['/api/auth', '/api/system'];
+const publicRoutes = ['/login'];
 const authRoutes = ['/login'];
-
-function matchesPrefix(pathname: string, prefixes: string[]) {
-  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
-}
 
 function rateLimitedResponse(request: NextRequest, resetAt: number) {
   const retryAfter = Math.max(1, Math.ceil((resetAt - Date.now()) / 1000));
@@ -36,7 +31,7 @@ function rateLimitedResponse(request: NextRequest, resetAt: number) {
   return response;
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (isCorsEnabled && isApiRoute(pathname) && request.method === 'OPTIONS') {
@@ -60,11 +55,11 @@ export async function proxy(request: NextRequest) {
 
   const session = await auth();
 
-  const isPublicRoute = matchesPrefix(pathname, publicRoutes);
-  const isPublicApi = matchesPrefix(pathname, publicApiPrefixes);
-  const isAuthRoute = authRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+  const isApiAuth = pathname.startsWith('/api/auth');
 
-  if (isPublicApi) {
+  if (isApiAuth) {
     return applyCorsHeaders(NextResponse.next(), request);
   }
 
@@ -76,7 +71,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (!session && isApiRoute(pathname) && !isPublicApi) {
+  if (!session && isApiRoute(pathname) && !pathname.startsWith('/api/auth')) {
     return withCorsJson(request, { error: 'Unauthorized' }, 401);
   }
 

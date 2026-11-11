@@ -1,13 +1,5 @@
 import { UserRole, AccountantModule } from '@/types';
 
-export function canAccessSystemEnv(role: UserRole): boolean {
-  return role === UserRole.SUPER_ADMIN;
-}
-
-export function canOverrideSuperAdminPassword(role: UserRole): boolean {
-  return role === UserRole.SUPER_ADMIN;
-}
-
 export function canManageUsers(role: UserRole): boolean {
   return role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN;
 }

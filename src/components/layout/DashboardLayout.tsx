@@ -17,12 +17,13 @@ import {
   Divider,
   Snackbar,
   Alert,
+  useMediaQuery,
+  useTheme,
   alpha,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import BusinessIcon from "@mui/icons-material/Business";
 import PeopleIcon from "@mui/icons-material/People";
-import TuneIcon from "@mui/icons-material/Tune";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LockIcon from "@mui/icons-material/Lock";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
@@ -38,15 +39,9 @@ import ChangePasswordDialog from "@/components/account/ChangePasswordDialog";
 
 const DRAWER_WIDTH = 268;
 
-const navItems: Array<{
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-  adminOnly?: boolean;
-}> = [
+const navItems = [
   { label: "Companies", href: "/", icon: <BusinessIcon /> },
   { label: "Users", href: "/users", icon: <PeopleIcon />, adminOnly: true },
-  { label: "Environment", href: "/env", icon: <TuneIcon /> },
 ];
 
 export default function DashboardLayout({
@@ -56,6 +51,8 @@ export default function DashboardLayout({
 }) {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
@@ -144,13 +141,15 @@ export default function DashboardLayout({
         }}
       >
         <Toolbar sx={{ gap: 1 }}>
-          <IconButton
-            edge="start"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            sx={{ mr: 0.5, display: { xs: "inline-flex", md: "none" } }}
-          >
-            <MenuIcon />
-          </IconButton>
+          {isMobile && (
+            <IconButton
+              edge="start"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              sx={{ mr: 0.5 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
           <Box sx={{ flexGrow: 1 }} />
           <ThemeSwitcher />
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, ml: 1 }}>
