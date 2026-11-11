@@ -29,6 +29,16 @@ export const resetPasswordSchema = z.object({
   newPassword: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
+export const overrideSuperAdminPasswordSchema = z
+  .object({
+    newPassword: z.string().min(8, 'Password must be at least 8 characters').optional(),
+    useEnvPassword: z.boolean().optional(),
+  })
+  .refine((data) => data.useEnvPassword === true || Boolean(data.newPassword), {
+    message: 'New password is required',
+    path: ['newPassword'],
+  });
+
 export const contactSchema = z.object({
   name: z.string().min(1, 'Contact name is required'),
   phoneNumbers: z.array(z.string()).default([]),

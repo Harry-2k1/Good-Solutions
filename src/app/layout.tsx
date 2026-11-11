@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import Providers from '@/components/Providers';
+import { getSiteUrl } from '@/lib/env';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: 'Good Solutions | Accountant Admin Portal',
     template: '%s | Good Solutions',
