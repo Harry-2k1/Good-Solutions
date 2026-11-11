@@ -17,6 +17,19 @@ html {
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Prevent iOS zoom on focus for inputs with at least 16px font */
+@media (max-width: 599.95px) {
+  input,
+  textarea,
+  select,
+  .MuiInputBase-input {
+    font-size: 16px !important;
+  }
 }
 
 a {

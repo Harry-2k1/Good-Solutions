@@ -79,6 +79,18 @@ export function getClientIp(request: Request): string {
   return request.headers.get('x-real-ip') || 'unknown';
 }
 
+/** High-frequency, low-risk Auth.js reads should not share the login rate bucket. */
+export function isStrictAuthRateLimitPath(pathname: string, method: string): boolean {
+  if (!pathname.startsWith('/api/auth')) return false;
+
+  const safeGetPaths = ['/api/auth/session', '/api/auth/csrf', '/api/auth/providers'];
+  if (method === 'GET' && safeGetPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
+    return false;
+  }
+
+  return true;
+}
+
 export function getRateLimitConfig(isAuthRoute: boolean): RateLimitConfig {
   const enabled = process.env.RATE_LIMIT_ENABLED !== 'false';
   if (!enabled) {
@@ -89,7 +101,7 @@ export function getRateLimitConfig(isAuthRoute: boolean): RateLimitConfig {
 
   if (isAuthRoute) {
     return {
-      max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '10', 10),
+      max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '60', 10),
       windowMs,
     };
   }

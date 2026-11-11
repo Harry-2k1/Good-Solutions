@@ -5,7 +5,7 @@ import {
   Button,
   Card,
   CardContent,
-  Dialog,
+  Divider,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -28,6 +28,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { useState, useEffect, useCallback } from 'react';
+import { PanelHeader } from '@/components/common/PanelHeader';
+import { ResponsiveTableContainer } from '@/components/common/PageElements';
+import ResponsiveDialog from '@/components/common/ResponsiveDialog';
+import { useIsTabletDown } from '@/hooks/useIsMobile';
 
 interface LoginDetail {
   _id: string;
@@ -42,6 +46,7 @@ interface CompanyLoginDetailsPanelProps {
 }
 
 export default function CompanyLoginDetailsPanel({ companyId, canEdit = true }: CompanyLoginDetailsPanelProps) {
+  const isNarrow = useIsTabletDown();
   const [entries, setEntries] = useState<LoginDetail[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<LoginDetail | null>(null);
@@ -96,60 +101,103 @@ export default function CompanyLoginDetailsPanel({ companyId, canEdit = true }: 
   return (
     <Card>
       <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">Company Login Details</Typography>
-          {canEdit && (
-            <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={openCreate}>
-              Add Portal
-            </Button>
-          )}
-        </Box>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Portal Name</TableCell>
-                <TableCell>Links</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {entries.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} align="center">
-                    <Typography color="text.secondary" sx={{ py: 2 }}>No login details yet</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                entries.map((e) => (
-                  <TableRow key={e._id} hover>
-                    <TableCell>{e.portalName}</TableCell>
-                    <TableCell>
-                      {e.links ? (
-                        <MuiLink href={e.links} target="_blank" rel="noopener">
-                          {e.links} <OpenInNewIcon sx={{ fontSize: 14, verticalAlign: 'middle' }} />
-                        </MuiLink>
-                      ) : '—'}
-                    </TableCell>
-                    <TableCell>{e.description || '—'}</TableCell>
-                    <TableCell align="right">
-                      {canEdit && (
-                        <>
-                          <IconButton size="small" onClick={() => openEdit(e)}><EditIcon fontSize="small" /></IconButton>
-                          <IconButton size="small" color="error" onClick={() => handleDelete(e._id)}><DeleteIcon fontSize="small" /></IconButton>
-                        </>
-                      )}
-                    </TableCell>
+        <PanelHeader
+          title="Company Login Details"
+          action={
+            canEdit ? (
+              <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={openCreate}>
+                Add Portal
+              </Button>
+            ) : undefined
+          }
+        />
+        {entries.length === 0 ? (
+          <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+            No login details yet
+          </Typography>
+        ) : isNarrow ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {entries.map((e) => (
+              <Card key={e._id} variant="outlined">
+                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+                  <Typography sx={{ fontWeight: 600, mb: 0.5 }}>{e.portalName}</Typography>
+                  {e.links ? (
+                    <MuiLink
+                      href={e.links}
+                      target="_blank"
+                      rel="noopener"
+                      variant="body2"
+                      sx={{ wordBreak: 'break-all', display: 'block', mb: 0.5 }}
+                    >
+                      {e.links} <OpenInNewIcon sx={{ fontSize: 14, verticalAlign: 'middle' }} />
+                    </MuiLink>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">No link</Typography>
+                  )}
+                  {e.description && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      {e.description}
+                    </Typography>
+                  )}
+                  {canEdit && (
+                    <>
+                      <Divider sx={{ my: 1.5 }} />
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                        <IconButton onClick={() => openEdit(e)} aria-label="Edit portal">
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton color="error" onClick={() => handleDelete(e._id)} aria-label="Delete portal">
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        ) : (
+          <ResponsiveTableContainer minWidth={640}>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Portal Name</TableCell>
+                    <TableCell>Links</TableCell>
+                    <TableCell>Description</TableCell>
+                    <TableCell align="right">Actions</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {entries.map((e) => (
+                    <TableRow key={e._id} hover>
+                      <TableCell>{e.portalName}</TableCell>
+                      <TableCell>
+                        {e.links ? (
+                          <MuiLink href={e.links} target="_blank" rel="noopener">
+                            {e.links} <OpenInNewIcon sx={{ fontSize: 14, verticalAlign: 'middle' }} />
+                          </MuiLink>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell>{e.description || '—'}</TableCell>
+                      <TableCell align="right">
+                        {canEdit && (
+                          <>
+                            <IconButton size="small" onClick={() => openEdit(e)}><EditIcon fontSize="small" /></IconButton>
+                            <IconButton size="small" color="error" onClick={() => handleDelete(e._id)}><DeleteIcon fontSize="small" /></IconButton>
+                          </>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </ResponsiveTableContainer>
+        )}
       </CardContent>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <ResponsiveDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? 'Edit Portal' : 'Add Portal'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
@@ -168,7 +216,7 @@ export default function CompanyLoginDetailsPanel({ companyId, canEdit = true }: 
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSave} disabled={!form.portalName}>Save</Button>
         </DialogActions>
-      </Dialog>
+      </ResponsiveDialog>
 
       <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack({ ...snack, open: false })}>
         <Alert severity={snack.severity}>{snack.message}</Alert>

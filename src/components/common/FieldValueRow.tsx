@@ -146,7 +146,8 @@ export function FieldValueRow({
         open={snackOpen}
         autoHideDuration={2500}
         onClose={() => setSnackOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ bottom: { xs: 72, sm: 24 } }}
       >
         <Alert severity={snackSeverity} variant="filled" onClose={() => setSnackOpen(false)} sx={{ width: '100%' }}>
           {snackMessage}

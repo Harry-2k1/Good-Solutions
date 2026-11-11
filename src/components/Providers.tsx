@@ -8,14 +8,14 @@ import { ThemeModeProvider } from '@/context/ThemeModeContext';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
-      <ThemeModeProvider>
-        <AppRouterCacheProvider>
+    <SessionProvider refetchOnWindowFocus={false}>
+      <AppRouterCacheProvider options={{ key: 'mui' }}>
+        <ThemeModeProvider>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             {children}
           </LocalizationProvider>
-        </AppRouterCacheProvider>
-      </ThemeModeProvider>
+        </ThemeModeProvider>
+      </AppRouterCacheProvider>
     </SessionProvider>
   );
 }

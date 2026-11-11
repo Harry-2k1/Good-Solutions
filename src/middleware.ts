@@ -12,6 +12,7 @@ import {
   checkRateLimit,
   getClientIp,
   getRateLimitConfig,
+  isStrictAuthRateLimitPath,
   rateLimitHeaders,
 } from '@/lib/rate-limit';
 
@@ -39,10 +40,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isApiRoute(pathname)) {
-    const isAuthApi = pathname.startsWith('/api/auth');
+    const strictAuthLimit = isStrictAuthRateLimitPath(pathname, request.method);
     const ip = getClientIp(request);
-    const config = getRateLimitConfig(isAuthApi);
-    const result = checkRateLimit(`${ip}:${isAuthApi ? 'auth' : 'api'}`, config);
+    const config = getRateLimitConfig(strictAuthLimit);
+    const result = checkRateLimit(`${ip}:${strictAuthLimit ? 'auth' : 'api'}`, config);
 
     if (!result.success) {
       const blocked = rateLimitedResponse(request, result.resetAt);

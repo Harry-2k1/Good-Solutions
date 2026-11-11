@@ -94,7 +94,7 @@ export default function CompaniesPage() {
         placeholder="Search companies..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        sx={{ mb: 3, maxWidth: 400 }}
+        sx={{ mb: 3, maxWidth: { xs: '100%', sm: 400 } }}
         slotProps={{
           input: {
             startAdornment: (

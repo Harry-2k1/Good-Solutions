@@ -24,9 +24,18 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-      <Box>
-        <Typography variant="h4" gutterBottom>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        justifyContent: 'space-between',
+        alignItems: { xs: 'stretch', sm: 'flex-start' },
+        gap: { xs: 2, sm: 3 },
+        mb: 3,
+      }}
+    >
+      <Box sx={{ minWidth: 0 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
           {title}
         </Typography>
         {subtitle && (
@@ -35,7 +44,37 @@ export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
           </Typography>
         )}
       </Box>
-      {action}
+      {action && (
+        <Box
+          sx={{
+            flexShrink: 0,
+            '& > .MuiButton-root': { width: { xs: '100%', sm: 'auto' } },
+          }}
+        >
+          {action}
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+/** Horizontal scroll wrapper for wide tables on small screens. */
+export function ResponsiveTableContainer({
+  children,
+  minWidth = 640,
+}: {
+  children: React.ReactNode;
+  minWidth?: number;
+}) {
+  return (
+    <Box
+      sx={{
+        mx: { xs: -1, sm: 0 },
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+      }}
+    >
+      <Box sx={{ minWidth: { xs: minWidth, md: 'auto' } }}>{children}</Box>
     </Box>
   );
 }

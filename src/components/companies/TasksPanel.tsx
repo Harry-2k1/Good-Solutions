@@ -6,7 +6,7 @@ import {
   Card,
   CardContent,
   Chip,
-  Dialog,
+  Divider,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -32,6 +32,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import { useState, useEffect, useCallback } from 'react';
 import { TaskStatus } from '@/types';
+import { PanelHeader } from '@/components/common/PanelHeader';
+import { ResponsiveTableContainer } from '@/components/common/PageElements';
+import ResponsiveDialog from '@/components/common/ResponsiveDialog';
+import { useIsTabletDown } from '@/hooks/useIsMobile';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs, { Dayjs } from 'dayjs';
 
@@ -67,6 +71,7 @@ const statusLabels: Record<TaskStatus, string> = {
 };
 
 export default function TasksPanel({ companyId }: { companyId: string }) {
+  const isNarrow = useIsTabletDown();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<UserOption[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -158,75 +163,112 @@ export default function TasksPanel({ companyId }: { companyId: string }) {
   return (
     <Card>
       <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">Tasks</Typography>
-          <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={openCreate}>
-            Add Task
-          </Button>
-        </Box>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Assigned To</TableCell>
-                <TableCell>Start</TableCell>
-                <TableCell>End</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {tasks.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <Typography color="text.secondary" sx={{ py: 2 }}>
-                      No tasks yet
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                tasks.map((task) => (
-                  <TableRow key={task._id} hover>
-                    <TableCell>
-                      <Typography sx={{ fontWeight: 500 }}>{task.name}</Typography>
+        <PanelHeader
+          title="Tasks"
+          action={
+            <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={openCreate}>
+              Add Task
+            </Button>
+          }
+        />
+        {tasks.length === 0 ? (
+          <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+            No tasks yet
+          </Typography>
+        ) : isNarrow ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {tasks.map((task) => (
+              <Card key={task._id} variant="outlined">
+                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={{ fontWeight: 600 }}>{task.name}</Typography>
                       {task.description && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                           {task.description}
                         </Typography>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={statusLabels[task.status]}
-                        color={statusColors[task.status]}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>{task.assignedTo?.name || '—'}</TableCell>
-                    <TableCell>
-                      {task.startTime ? dayjs(task.startTime).format('DD MMM YYYY') : '—'}
-                    </TableCell>
-                    <TableCell>
-                      {task.endTime ? dayjs(task.endTime).format('DD MMM YYYY') : '—'}
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton size="small" onClick={() => openEdit(task)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton size="small" color="error" onClick={() => handleDelete(task._id)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
+                    </Box>
+                    <Chip label={statusLabels[task.status]} color={statusColors[task.status]} size="small" />
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Assigned: {task.assignedTo?.name || '—'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                    {task.startTime ? dayjs(task.startTime).format('DD MMM YYYY') : '—'}
+                    {' — '}
+                    {task.endTime ? dayjs(task.endTime).format('DD MMM YYYY') : '—'}
+                  </Typography>
+                  <Divider sx={{ my: 1.5 }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                    <IconButton onClick={() => openEdit(task)} aria-label="Edit task">
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton color="error" onClick={() => handleDelete(task._id)} aria-label="Delete task">
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        ) : (
+          <ResponsiveTableContainer minWidth={720}>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Assigned To</TableCell>
+                    <TableCell>Start</TableCell>
+                    <TableCell>End</TableCell>
+                    <TableCell align="right">Actions</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {tasks.map((task) => (
+                    <TableRow key={task._id} hover>
+                      <TableCell>
+                        <Typography sx={{ fontWeight: 500 }}>{task.name}</Typography>
+                        {task.description && (
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                            {task.description}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={statusLabels[task.status]}
+                          color={statusColors[task.status]}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>{task.assignedTo?.name || '—'}</TableCell>
+                      <TableCell>
+                        {task.startTime ? dayjs(task.startTime).format('DD MMM YYYY') : '—'}
+                      </TableCell>
+                      <TableCell>
+                        {task.endTime ? dayjs(task.endTime).format('DD MMM YYYY') : '—'}
+                      </TableCell>
+                      <TableCell align="right">
+                        <IconButton size="small" onClick={() => openEdit(task)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" color="error" onClick={() => handleDelete(task._id)}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </ResponsiveTableContainer>
+        )}
       </CardContent>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <ResponsiveDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? 'Edit Task' : 'New Task'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
@@ -306,7 +348,7 @@ export default function TasksPanel({ companyId }: { companyId: string }) {
             Save
           </Button>
         </DialogActions>
-      </Dialog>
+      </ResponsiveDialog>
 
       <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack({ ...snack, open: false })}>
         <Alert severity={snack.severity}>{snack.message}</Alert>

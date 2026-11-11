@@ -5,7 +5,7 @@ import {
   Button,
   Card,
   CardContent,
-  Dialog,
+  Divider,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -28,7 +28,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { PasswordField } from '@/components/common/PageElements';
+import { PasswordField, ResponsiveTableContainer } from '@/components/common/PageElements';
+import { PanelHeader } from '@/components/common/PanelHeader';
+import ResponsiveDialog from '@/components/common/ResponsiveDialog';
+import { useIsTabletDown } from '@/hooks/useIsMobile';
 import { FieldValueRow } from '@/components/common/FieldValueRow';
 import { MASK_PLACEHOLDER } from '@/lib/credentials-display';
 import {
@@ -55,6 +58,7 @@ interface BankOperationsPanelProps {
 }
 
 export default function BankOperationsPanel({ companyId, canEdit = true }: BankOperationsPanelProps) {
+  const isNarrow = useIsTabletDown();
   const [entries, setEntries] = useState<BankEntry[]>([]);
   const [revealedEntries, setRevealedEntries] = useState<BankEntry[]>([]);
   const [revealedFields, setRevealedFields] = useState<Set<string>>(new Set());
@@ -228,66 +232,92 @@ export default function BankOperationsPanel({ companyId, canEdit = true }: BankO
   return (
     <Card>
       <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Box>
-            <Typography variant="h6">Bank Operations</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {entries.length} bank {entries.length === 1 ? 'entry' : 'entries'} saved
-            </Typography>
+        <PanelHeader
+          title="Bank Operations"
+          subtitle={`${entries.length} bank ${entries.length === 1 ? 'entry' : 'entries'} saved`}
+          action={
+            canEdit ? (
+              <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={openCreate}>
+                Add Bank
+              </Button>
+            ) : undefined
+          }
+        />
+        {entries.length === 0 ? (
+          <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+            No bank entries yet
+          </Typography>
+        ) : isNarrow ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {entries.map((e) => (
+              <Card key={e._id} variant="outlined" sx={{ cursor: 'pointer' }} onClick={() => openView(e)}>
+                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+                  <Typography sx={{ fontWeight: 600, mb: 0.5 }}>{e.bankName}</Typography>
+                  <Typography variant="body2" color="text.secondary">User ID: {e.userId || '—'}</Typography>
+                  <Typography variant="body2" color="text.secondary">OTP: {e.otpPhoneNumber || '—'}</Typography>
+                  <Divider sx={{ my: 1.5 }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }} onClick={(ev) => ev.stopPropagation()}>
+                    <IconButton onClick={() => openView(e)} aria-label="View bank details">
+                      <VisibilityIcon />
+                    </IconButton>
+                    {canEdit && (
+                      <>
+                        <IconButton onClick={() => openEdit(e)} aria-label="Edit bank entry">
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton color="error" onClick={() => handleDelete(e._id)} aria-label="Delete bank entry">
+                          <DeleteIcon />
+                        </IconButton>
+                      </>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
           </Box>
-          {canEdit && (
-            <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={openCreate}>
-              Add Bank
-            </Button>
-          )}
-        </Box>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Bank Name</TableCell>
-                <TableCell>User ID</TableCell>
-                <TableCell>Login Password</TableCell>
-                <TableCell>OTP Phone</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {entries.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center">
-                    <Typography color="text.secondary" sx={{ py: 2 }}>No bank entries yet</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                entries.map((e) => (
-                  <TableRow key={e._id} hover sx={{ cursor: 'pointer' }} onClick={() => openView(e)}>
-                    <TableCell>
-                      <Typography sx={{ fontWeight: 500 }}>{e.bankName}</Typography>
-                    </TableCell>
-                    <TableCell>{e.userId || '—'}</TableCell>
-                    <TableCell>{e.loginPassword || '—'}</TableCell>
-                    <TableCell>{e.otpPhoneNumber || '—'}</TableCell>
-                    <TableCell align="right" onClick={(ev) => ev.stopPropagation()}>
-                      <IconButton size="small" onClick={() => openView(e)} title="View details">
-                        <VisibilityIcon fontSize="small" />
-                      </IconButton>
-                      {canEdit && (
-                        <>
-                          <IconButton size="small" onClick={() => openEdit(e)}><EditIcon fontSize="small" /></IconButton>
-                          <IconButton size="small" color="error" onClick={() => handleDelete(e._id)}><DeleteIcon fontSize="small" /></IconButton>
-                        </>
-                      )}
-                    </TableCell>
+        ) : (
+          <ResponsiveTableContainer minWidth={680}>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Bank Name</TableCell>
+                    <TableCell>User ID</TableCell>
+                    <TableCell>Login Password</TableCell>
+                    <TableCell>OTP Phone</TableCell>
+                    <TableCell align="right">Actions</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {entries.map((e) => (
+                    <TableRow key={e._id} hover sx={{ cursor: 'pointer' }} onClick={() => openView(e)}>
+                      <TableCell>
+                        <Typography sx={{ fontWeight: 500 }}>{e.bankName}</Typography>
+                      </TableCell>
+                      <TableCell>{e.userId || '—'}</TableCell>
+                      <TableCell>{e.loginPassword || '—'}</TableCell>
+                      <TableCell>{e.otpPhoneNumber || '—'}</TableCell>
+                      <TableCell align="right" onClick={(ev) => ev.stopPropagation()}>
+                        <IconButton size="small" onClick={() => openView(e)} title="View details">
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                        {canEdit && (
+                          <>
+                            <IconButton size="small" onClick={() => openEdit(e)}><EditIcon fontSize="small" /></IconButton>
+                            <IconButton size="small" color="error" onClick={() => handleDelete(e._id)}><DeleteIcon fontSize="small" /></IconButton>
+                          </>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </ResponsiveTableContainer>
+        )}
       </CardContent>
 
-      <Dialog open={Boolean(activeView)} onClose={() => setViewEntry(null)} maxWidth="sm" fullWidth>
+      <ResponsiveDialog open={Boolean(activeView)} onClose={() => setViewEntry(null)} maxWidth="sm" fullWidth>
         {activeView && (
           <>
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -334,9 +364,9 @@ export default function BankOperationsPanel({ companyId, canEdit = true }: BankO
             </DialogActions>
           </>
         )}
-      </Dialog>
+      </ResponsiveDialog>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <ResponsiveDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? 'Edit Bank Entry' : 'Add Bank Entry'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
@@ -367,7 +397,7 @@ export default function BankOperationsPanel({ companyId, canEdit = true }: BankO
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSave} disabled={!form.bankName}>Save</Button>
         </DialogActions>
-      </Dialog>
+      </ResponsiveDialog>
 
       <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack({ ...snack, open: false })}>
         <Alert severity={snack.severity}>{snack.message}</Alert>

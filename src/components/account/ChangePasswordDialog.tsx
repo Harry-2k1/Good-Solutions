@@ -3,7 +3,6 @@
 import {
   Alert,
   Button,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -12,6 +11,7 @@ import {
   InputAdornment,
   TextField,
 } from '@mui/material';
+import ResponsiveDialog from '@/components/common/ResponsiveDialog';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useState } from 'react';
@@ -91,7 +91,7 @@ export default function ChangePasswordDialog({ open, onClose, onSuccess }: Chang
     !loading;
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <ResponsiveDialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>Change Password</DialogTitle>
       <DialogContent>
         {error && (
@@ -174,6 +174,6 @@ export default function ChangePasswordDialog({ open, onClose, onSuccess }: Chang
           {loading ? 'Updating...' : 'Update Password'}
         </Button>
       </DialogActions>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

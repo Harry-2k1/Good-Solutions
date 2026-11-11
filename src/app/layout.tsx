@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import Providers from '@/components/Providers';
+import { THEME_STORAGE_KEY } from '@/theme/theme-config';
 import './globals.css';
+
+const themeBootScript = `(()=>{try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var t=localStorage.getItem(k);if(t==='light-blue'||t==='dark-blue'||t==='dark'){document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t==='light-blue'?'light':'dark';}else{document.documentElement.dataset.theme='light-blue';document.documentElement.style.colorScheme='light';}}catch(e){document.documentElement.dataset.theme='light-blue';}})();`;
 
 export const metadata: Metadata = {
   title: {
@@ -43,12 +46,14 @@ export const viewport: Viewport = {
   ],
   width: 'device-width',
   initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning data-theme="light-blue">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -57,7 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -161,11 +161,30 @@ export default function CompanyDetailPage() {
       </Box>
 
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>{company.name}</Typography>
-        <Box sx={{ display: 'flex', gap: 1, mt: 1, alignItems: 'center' }}>
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 700,
+            fontSize: { xs: '1.35rem', sm: '2.125rem' },
+            wordBreak: 'break-word',
+          }}
+        >
+          {company.name}
+        </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 1,
+            mt: 1,
+            alignItems: { xs: 'flex-start', sm: 'center' },
+          }}
+        >
           <Chip label={companyTypeLabels[company.companyType]} size="small" color="primary" variant="outlined" />
           {company.description && (
-            <Typography variant="body2" color="text.secondary">{company.description}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+              {company.description}
+            </Typography>
           )}
         </Box>
       </Box>

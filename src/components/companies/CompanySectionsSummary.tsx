@@ -77,8 +77,10 @@ export default function CompanySectionsSummary({ companyId, accessibleModules, o
                 <Box
                   sx={{
                     display: 'flex',
-                    alignItems: 'center',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'stretch', sm: 'center' },
                     justifyContent: 'space-between',
+                    gap: { xs: 1, sm: 0 },
                     p: 1.5,
                     borderRadius: 2,
                     border: '1px solid',
@@ -95,7 +97,7 @@ export default function CompanySectionsSummary({ companyId, accessibleModules, o
                           ),
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', minWidth: 0 }}>
                     {configured ? (
                       <CheckCircleIcon color="success" fontSize="small" />
                     ) : (
@@ -109,7 +111,11 @@ export default function CompanySectionsSummary({ companyId, accessibleModules, o
                       variant="outlined"
                     />
                   </Box>
-                  <Button size="small" onClick={() => onNavigateTab(s.tabKey)}>
+                  <Button
+                    size="small"
+                    onClick={() => onNavigateTab(s.tabKey)}
+                    sx={{ alignSelf: { xs: 'stretch', sm: 'auto' } }}
+                  >
                     View
                   </Button>
                 </Box>

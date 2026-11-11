@@ -146,14 +146,27 @@ export default function EditCompanyPanel({ company, onUpdated }: EditCompanyPane
     return (
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              justifyContent: 'space-between',
+              alignItems: { xs: 'stretch', sm: 'flex-start' },
+              gap: 2,
+            }}
+          >
             <Box>
               <Typography variant="h6" sx={{ mb: 0.5 }}>Company Details</Typography>
               <Typography variant="body2" color="text.secondary">
                 Name, type, description, contacts, and links
               </Typography>
             </Box>
-            <Button variant="outlined" startIcon={<EditIcon />} onClick={() => setEditing(true)}>
+            <Button
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={() => setEditing(true)}
+              sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
+            >
               Edit Details
             </Button>
           </Box>

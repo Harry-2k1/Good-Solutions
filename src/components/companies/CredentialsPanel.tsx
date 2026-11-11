@@ -234,13 +234,22 @@ export default function CredentialsPanel({
           );
         })}
       </Tabs>
-      <CardContent>
+      <CardContent sx={{ px: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 2, sm: 2 } } }}>
         {loading ? (
           <Typography color="text.secondary">Loading saved details...</Typography>
         ) : (
           <>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'stretch', sm: 'center' },
+                gap: 1.5,
+                mb: 2,
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                 <Typography variant="h6">{currentSection.title}</Typography>
                 {isConfigured ? (
                   <Chip label="Configured" size="small" color="success" variant="outlined" />
@@ -249,7 +258,11 @@ export default function CredentialsPanel({
                 )}
               </Box>
               {canEdit && (
-                <Stack direction="row" spacing={1}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ '& .MuiButton-root': { width: { xs: '100%', sm: 'auto' } } }}
+                >
                   {!isEditing ? (
                     <Button
                       size="small"

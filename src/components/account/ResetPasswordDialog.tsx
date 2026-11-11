@@ -3,7 +3,6 @@
 import {
   Alert,
   Button,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -16,6 +15,7 @@ import {
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useState } from 'react';
+import ResponsiveDialog from '@/components/common/ResponsiveDialog';
 
 interface ResetPasswordDialogProps {
   open: boolean;
@@ -93,7 +93,7 @@ export default function ResetPasswordDialog({
   const canSubmit = newPassword.length >= 8 && confirmPassword.length >= 8 && !loading;
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <ResponsiveDialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>Reset Password</DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -158,6 +158,6 @@ export default function ResetPasswordDialog({
           {loading ? 'Updating...' : 'Reset Password'}
         </Button>
       </DialogActions>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

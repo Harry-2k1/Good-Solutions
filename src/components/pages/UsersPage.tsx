@@ -4,8 +4,8 @@ import {
   Box,
   Button,
   Card,
+  CardContent,
   Chip,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -36,7 +36,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback } from 'react';
-import { PageHeader, LoadingState, EmptyState, ErrorAlert } from '@/components/common/PageElements';
+import { PageHeader, LoadingState, EmptyState, ErrorAlert, ResponsiveTableContainer } from '@/components/common/PageElements';
+import ResponsiveDialog from '@/components/common/ResponsiveDialog';
+import { useIsTabletDown } from '@/hooks/useIsMobile';
 import ResetPasswordDialog from '@/components/account/ResetPasswordDialog';
 import { AccountantModule, UserRole, ALL_ACCOUNTANT_MODULES, accountantModuleLabels } from '@/types';
 import { getCreatableRoles, getRoleLabel, canManageModuleAccess, canResetUserPassword } from '@/lib/permissions';
@@ -58,6 +60,7 @@ const roleColors: Record<UserRole, 'error' | 'warning' | 'info'> = {
 };
 
 export default function UsersPage() {
+  const isNarrow = useIsTabletDown();
   const { data: session } = useSession();
   const role = session?.user?.role as UserRole;
   const creatableRoles = role ? getCreatableRoles(role) : [];
@@ -182,74 +185,140 @@ export default function UsersPage() {
 
       {users.length === 0 ? (
         <EmptyState title="No users found" description="Create users to manage your team" />
+      ) : isNarrow ? (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          {users.map((user) => (
+            <Card key={user._id} variant="outlined">
+              <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ fontWeight: 600, wordBreak: 'break-word' }}>{user.name}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
+                      {user.email}
+                    </Typography>
+                  </Box>
+                  <Chip label={getRoleLabel(user.role)} color={roleColors[user.role]} size="small" />
+                </Box>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                  <Chip
+                    label={user.isActive ? 'Active' : 'Inactive'}
+                    color={user.isActive ? 'success' : 'default'}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                    Joined {new Date(user.createdAt).toLocaleDateString()}
+                  </Typography>
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                  Module access
+                </Typography>
+                {user.role === UserRole.USER ? (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}>
+                    {(user.moduleAccess?.length ?? 0) > 0 ? (
+                      user.moduleAccess!.map((mod) => (
+                        <Chip key={mod} label={accountantModuleLabels[mod]} size="small" variant="outlined" />
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">None assigned</Typography>
+                    )}
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                    All modules
+                  </Typography>
+                )}
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                  {role && user.isActive && canResetUserPassword(role, user.role, user._id === session?.user?.id) && (
+                    <IconButton onClick={() => openPasswordDialog(user)} title="Reset password" aria-label="Reset password">
+                      <LockResetIcon />
+                    </IconButton>
+                  )}
+                  {canManageModules && user.role === UserRole.USER && user.isActive && (
+                    <IconButton onClick={() => openModulesDialog(user)} title="Edit module access" aria-label="Edit module access">
+                      <EditIcon />
+                    </IconButton>
+                  )}
+                  {user.isActive && user.role !== UserRole.SUPER_ADMIN && user._id !== session?.user?.id && (
+                    <IconButton color="error" onClick={() => handleDeactivate(user._id)} title="Deactivate" aria-label="Deactivate user">
+                      <PersonOffIcon />
+                    </IconButton>
+                  )}
+                </Box>
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
       ) : (
         <Card>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Module Access</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Created</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user._id} hover>
-                    <TableCell><Typography sx={{ fontWeight: 500 }}>{user.name}</Typography></TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Chip label={getRoleLabel(user.role)} color={roleColors[user.role]} size="small" />
-                    </TableCell>
-                    <TableCell>
-                      {user.role === UserRole.USER ? (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {(user.moduleAccess?.length ?? 0) > 0 ? (
-                            user.moduleAccess!.map((mod) => (
-                              <Chip key={mod} label={accountantModuleLabels[mod]} size="small" variant="outlined" />
-                            ))
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">None assigned</Typography>
-                          )}
-                        </Box>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">All modules</Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip label={user.isActive ? 'Active' : 'Inactive'} color={user.isActive ? 'success' : 'default'} size="small" variant="outlined" />
-                    </TableCell>
-                    <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell align="right">
-                      {role && user.isActive && canResetUserPassword(role, user.role, user._id === session?.user?.id) && (
-                        <IconButton size="small" onClick={() => openPasswordDialog(user)} title="Reset password">
-                          <LockResetIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                      {canManageModules && user.role === UserRole.USER && user.isActive && (
-                        <IconButton size="small" onClick={() => openModulesDialog(user)} title="Edit module access">
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                      {user.isActive && user.role !== UserRole.SUPER_ADMIN && user._id !== session?.user?.id && (
-                        <IconButton color="error" size="small" onClick={() => handleDeactivate(user._id)} title="Deactivate">
-                          <PersonOffIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </TableCell>
+          <ResponsiveTableContainer minWidth={900}>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Role</TableCell>
+                    <TableCell>Module Access</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Created</TableCell>
+                    <TableCell align="right">Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user._id} hover>
+                      <TableCell><Typography sx={{ fontWeight: 500 }}>{user.name}</Typography></TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Chip label={getRoleLabel(user.role)} color={roleColors[user.role]} size="small" />
+                      </TableCell>
+                      <TableCell>
+                        {user.role === UserRole.USER ? (
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {(user.moduleAccess?.length ?? 0) > 0 ? (
+                              user.moduleAccess!.map((mod) => (
+                                <Chip key={mod} label={accountantModuleLabels[mod]} size="small" variant="outlined" />
+                              ))
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">None assigned</Typography>
+                            )}
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">All modules</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Chip label={user.isActive ? 'Active' : 'Inactive'} color={user.isActive ? 'success' : 'default'} size="small" variant="outlined" />
+                      </TableCell>
+                      <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell align="right">
+                        {role && user.isActive && canResetUserPassword(role, user.role, user._id === session?.user?.id) && (
+                          <IconButton size="small" onClick={() => openPasswordDialog(user)} title="Reset password">
+                            <LockResetIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                        {canManageModules && user.role === UserRole.USER && user.isActive && (
+                          <IconButton size="small" onClick={() => openModulesDialog(user)} title="Edit module access">
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                        {user.isActive && user.role !== UserRole.SUPER_ADMIN && user._id !== session?.user?.id && (
+                          <IconButton color="error" size="small" onClick={() => handleDeactivate(user._id)} title="Deactivate">
+                            <PersonOffIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </ResponsiveTableContainer>
         </Card>
       )}
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <ResponsiveDialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Create User</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
@@ -303,9 +372,9 @@ export default function UsersPage() {
             Create
           </Button>
         </DialogActions>
-      </Dialog>
+      </ResponsiveDialog>
 
-      <Dialog open={modulesDialogOpen} onClose={() => setModulesDialogOpen(false)} maxWidth="xs" fullWidth>
+      <ResponsiveDialog open={modulesDialogOpen} onClose={() => setModulesDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Edit Module Access</DialogTitle>
         <DialogContent>
           {editingUser && (
@@ -332,7 +401,7 @@ export default function UsersPage() {
           <Button onClick={() => setModulesDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSaveModules}>Save</Button>
         </DialogActions>
-      </Dialog>
+      </ResponsiveDialog>
 
       <ResetPasswordDialog
         open={passwordDialogOpen}

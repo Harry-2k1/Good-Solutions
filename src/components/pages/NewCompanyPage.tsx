@@ -134,9 +134,23 @@ export default function NewCompanyPage() {
 
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'stretch', sm: 'center' },
+                gap: 1,
+                mb: 2,
+              }}
+            >
               <Typography variant="h6">Contacts</Typography>
-              <Button size="small" startIcon={<AddIcon />} onClick={() => setContacts([...contacts, { name: '', phoneNumbers: '', emails: '' }])}>
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => setContacts([...contacts, { name: '', phoneNumbers: '', emails: '' }])}
+                sx={{ width: { xs: '100%', sm: 'auto' } }}
+              >
                 Add Contact
               </Button>
             </Box>
@@ -165,9 +179,23 @@ export default function NewCompanyPage() {
 
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'stretch', sm: 'center' },
+                gap: 1,
+                mb: 2,
+              }}
+            >
               <Typography variant="h6">Links</Typography>
-              <Button size="small" startIcon={<AddIcon />} onClick={() => setLinks([...links, { name: '', url: '', notes: '' }])}>
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => setLinks([...links, { name: '', url: '', notes: '' }])}
+                sx={{ width: { xs: '100%', sm: 'auto' } }}
+              >
                 Add Link
               </Button>
             </Box>
@@ -196,8 +224,16 @@ export default function NewCompanyPage() {
           </CardContent>
         </Card>
 
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button type="submit" variant="contained" size="large" startIcon={<SaveIcon />} disabled={loading || !name}>
+        <Box sx={{ display: 'flex', justifyContent: { xs: 'stretch', sm: 'flex-end' } }}>
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            startIcon={<SaveIcon />}
+            disabled={loading || !name}
+            fullWidth
+            sx={{ maxWidth: { sm: 'none' }, width: { xs: '100%', sm: 'auto' } }}
+          >
             {loading ? 'Creating...' : 'Create Company'}
           </Button>
         </Box>

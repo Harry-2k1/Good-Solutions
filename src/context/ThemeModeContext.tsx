@@ -29,22 +29,30 @@ function getInitialTheme(): ThemeMode {
   return 'light-blue';
 }
 
+function readThemeFromDom(): ThemeMode {
+  const value = document.documentElement.dataset.theme;
+  if (value === 'light-blue' || value === 'dark-blue' || value === 'dark') {
+    return value;
+  }
+  return getInitialTheme();
+}
+
 export function ThemeModeProvider({ children }: { children: React.ReactNode }) {
   const [themeMode, setThemeModeState] = useState<ThemeMode>('light-blue');
-  const [mounted, setMounted] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setThemeModeState(getInitialTheme());
-    setMounted(true);
+    setThemeModeState(readThemeFromDom());
+    setReady(true);
   }, []);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!ready) return;
     localStorage.setItem(THEME_STORAGE_KEY, themeMode);
-    document.documentElement.setAttribute('data-theme', themeMode);
+    document.documentElement.dataset.theme = themeMode;
     document.documentElement.style.colorScheme =
       themeMode === 'light-blue' ? 'light' : 'dark';
-  }, [themeMode, mounted]);
+  }, [themeMode, ready]);
 
   const setThemeMode = useCallback((mode: ThemeMode) => {
     setThemeModeState(mode);
@@ -57,7 +65,7 @@ export function ThemeModeProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeModeContext.Provider value={value}>
       <ThemeProvider theme={theme}>
-        <CssBaseline />
+        {ready ? <CssBaseline /> : null}
         {children}
       </ThemeProvider>
     </ThemeModeContext.Provider>

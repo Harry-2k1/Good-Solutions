@@ -17,8 +17,6 @@ import {
   Divider,
   Snackbar,
   Alert,
-  useMediaQuery,
-  useTheme,
   alpha,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -30,7 +28,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UserRole } from "@/types";
 import { canViewUsers, getRoleLabel } from "@/lib/permissions";
 import BrandLogo from "@/components/common/BrandLogo";
@@ -49,17 +47,24 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const pathname = usePathname();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [passwordSnack, setPasswordSnack] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const role = session?.user?.role as UserRole | undefined;
   const showUsers = role && canViewUsers(role);
+  const userInitial =
+    mounted && sessionStatus === "authenticated" && session?.user?.name
+      ? session.user.name.charAt(0).toUpperCase()
+      : "";
 
   const drawer = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -78,7 +83,7 @@ export default function DashboardLayout({
       </Box>
       <List sx={{ flex: 1, px: 1.5, py: 2 }}>
         {navItems
-          .filter((item) => !item.adminOnly || showUsers)
+          .filter((item) => !item.adminOnly || (mounted && showUsers))
           .map((item) => {
             const active =
               item.href === "/"
@@ -135,21 +140,20 @@ export default function DashboardLayout({
         position="fixed"
         color="inherit"
         sx={{
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          width: { xs: "100%", md: `calc(100% - ${DRAWER_WIDTH}px)` },
           ml: { md: `${DRAWER_WIDTH}px` },
           bgcolor: (t) => alpha(t.palette.background.paper, 0.85),
         }}
       >
-        <Toolbar sx={{ gap: 1 }}>
-          {isMobile && (
-            <IconButton
-              edge="start"
-              onClick={() => setMobileOpen(!mobileOpen)}
-              sx={{ mr: 0.5 }}
-            >
-              <MenuIcon />
-            </IconButton>
-          )}
+        <Toolbar sx={{ gap: 0.5, px: { xs: 1, sm: 2 }, minHeight: { xs: 56, sm: 64 } }}>
+          <IconButton
+            edge="start"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            sx={{ mr: 0.5, display: { xs: "inline-flex", md: "none" } }}
+            aria-label="Open navigation menu"
+          >
+            <MenuIcon />
+          </IconButton>
           <Box sx={{ flexGrow: 1 }} />
           <ThemeSwitcher />
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, ml: 1 }}>
@@ -157,24 +161,24 @@ export default function DashboardLayout({
               sx={{ textAlign: "right", display: { xs: "none", sm: "block" } }}
             >
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {session?.user?.name}
+                {mounted && sessionStatus === "authenticated" ? session?.user?.name : "\u00A0"}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {role ? getRoleLabel(role) : ""}
+                {mounted && role ? getRoleLabel(role) : "\u00A0"}
               </Typography>
             </Box>
             <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
               <Avatar
                 sx={{
-                  width: 38,
-                  height: 38,
+                  width: { xs: 34, sm: 38 },
+                  height: { xs: 34, sm: 38 },
                   bgcolor: "primary.main",
                   fontWeight: 700,
                   boxShadow: (t) =>
                     `0 2px 8px ${alpha(t.palette.primary.main, 0.4)}`,
                 }}
               >
-                {session?.user?.name?.charAt(0).toUpperCase()}
+                {userInitial}
               </Avatar>
             </IconButton>
           </Box>
@@ -257,10 +261,11 @@ export default function DashboardLayout({
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 2, sm: 3 },
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          mt: "64px",
-          minHeight: "calc(100vh - 64px)",
+          minWidth: 0,
+          p: { xs: 1.5, sm: 3 },
+          width: { xs: "100%", md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          mt: { xs: "56px", sm: "64px" },
+          minHeight: { xs: "calc(100vh - 56px)", sm: "calc(100vh - 64px)" },
         }}
       >
         {children}
